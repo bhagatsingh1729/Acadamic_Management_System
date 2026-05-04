@@ -1,9 +1,10 @@
+from typing import List
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
 
-from app.models import Student
-from app.schema import StudentCreate, StudentUpdate
+from app.models.models import Student
+from app.schemas.schema import StudentCreate, StudentUpdate
 from app.core.security import hash_password
 
 # Fix: removed unused imports StudentOut and StudentDelete
@@ -33,6 +34,41 @@ def create_student(db: Session, student: StudentCreate) -> Student:
         )
     return db_student
 
+def create_students_bulk(db: Session, students: List[StudentCreate]) -> List[Student]:
+    # 1. Create a list of Student database objects
+    db_students = [
+        Student(
+            usn=s.usn,
+            name=s.name,
+            email=s.email,
+            age=s.age,
+            branch=s.branch,
+            hashed_password=hash_password(s.password),
+        )
+        for s in students
+    ]
+
+    try:
+        # 2. Add all objects to the session
+        db.add_all(db_students)
+        
+        # 3. Commit once for the entire batch
+        db.commit()
+        
+        # 4. Refresh objects to get generated IDs (if any)
+        for s in db_students:
+            db.refresh(s)
+            
+    except IntegrityError:
+        # If even one student violates a constraint (like duplicate USN), 
+        # the entire batch is rolled back to maintain data integrity.
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="One or more students have a duplicate USN or email. Batch insert failed.",
+        )
+        
+    return db_students
 
 def get_students(db: Session) -> list[Student]:
     return db.query(Student).all()
