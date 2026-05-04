@@ -1,55 +1,81 @@
 from sqlalchemy.orm import Session
-from app.models import Student
-from app.schema import StudentCreate,StudentOut,StudentUpdate,StudentDelete
+from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
 
-def CreateStudent(db:Session,student:StudentCreate):
+from app.models import Student
+from app.schema import StudentCreate, StudentUpdate
+from app.core.security import hash_password
+
+# Fix: removed unused imports StudentOut and StudentDelete
+# Fix: renamed CreateStudent -> create_student to follow Python snake_case convention
+
+
+def create_student(db: Session, student: StudentCreate) -> Student:
+    # Fix: password is now hashed and stored instead of being silently ignored
     db_student = Student(
-        usn = student.usn,
-        name = student.name,
-        email = student.email,
-        age = student.age,
-        branch = student.branch
+        usn=student.usn,
+        name=student.name,
+        email=student.email,
+        age=student.age,
+        branch=student.branch,
+        hashed_password=hash_password(student.password),
     )
-    db.add(db_student)
-    db.commit()
-    db.refresh(db_student)
-
-    return db_student
-
-def get_students(db:Session):
-    return db.query(Student).all()
-
-def get_student(db: Session, usn: str):
-    return (
-        db
-        .query(Student)
-        .filter(Student.usn == usn)
-        .first()
-    )
-
-def update_student(db:Session,usn:str,student:StudentUpdate):
-    db_student = db.query(Student).filter(Student.usn == usn).first()
-
-    #check does the data exist
-    if db_student:
-        db_student.name = student.name if student.name else db_student.name
-        db_student.email = student.email if student.email else db_student.email
-        db_student.age = student.age if student.age else db_student.age
-        db_student.branch = student.branch if student.branch else db_student.branch
-
+    # Fix: wrapped commit in try/except to handle duplicate USN or email gracefully
+    try:
+        db.add(db_student)
         db.commit()
         db.refresh(db_student)
-        return db_student
-    raise HTTPException(status_code=404)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="A student with this USN or email already exists.",
+        )
+    return db_student
 
-def delete_student(db:Session,usn:str):
+
+def get_students(db: Session) -> list[Student]:
+    return db.query(Student).all()
+
+
+def get_student(db: Session, usn: str) -> Student:
+    # Fix: now raises 404 if student not found instead of returning None
+    student = db.query(Student).filter(Student.usn == usn).first()
+    if not student:
+        raise HTTPException(status_code=404, detail=f"Student with USN '{usn}' not found.")
+    return student
+
+
+def update_student(db: Session, usn: str, student: StudentUpdate) -> Student:
     db_student = db.query(Student).filter(Student.usn == usn).first()
-    #check if data exist
-    if db_student:
-        db.delete(db_student)
-        db.commit()
 
-        return db_student
-    raise HTTPException(status_code=404)
+    if not db_student:
+        # Fix: added detail message to HTTPException
+        raise HTTPException(status_code=404, detail=f"Student with USN '{usn}' not found.")
 
+    # Fix: changed falsy checks (if student.x) to explicit None checks (if student.x is not None)
+    # The old code would skip valid updates like age=0 or name="" since they are falsy
+    if student.name is not None:
+        db_student.name = student.name
+    if student.email is not None:
+        db_student.email = student.email
+    if student.age is not None:
+        db_student.age = student.age
+    if student.branch is not None:
+        db_student.branch = student.branch
+
+    db.commit()
+    db.refresh(db_student)
+    return db_student
+
+
+def delete_student(db: Session, usn: str) -> Student:
+    db_student = db.query(Student).filter(Student.usn == usn).first()
+
+    if not db_student:
+        # Fix: added detail message to HTTPException
+        raise HTTPException(status_code=404, detail=f"Student with USN '{usn}' not found.")
+
+    db.delete(db_student)
+    db.commit()
+    return db_student
