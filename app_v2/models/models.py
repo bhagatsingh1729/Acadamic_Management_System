@@ -1,7 +1,4 @@
-from sqlalchemy import Column, Integer, String
 from app_v2.database import Base
-
-
 
 # ================================
 # IMPORTS

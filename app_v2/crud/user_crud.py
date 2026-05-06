@@ -8,9 +8,17 @@ from app_v2.schemas.user_schema import UserBase,UserCreate,UserRead,UserUpdate,U
 from app_v2.core.security import hash_password
 
 def create_user(db:Session,user:UserCreate) -> User:
+    # Check if user with this email already exists
+    existing_user = db.query(User).filter(User.email == user.email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User with this email already exists")
+    
+    # Hash the password
+    hashed_password = hash_password(user.password)
+    
     db_user = User(
         email = user.email,
-        password = user.password,
+        password = hashed_password,
         role = user.role
     )
     db.add(db_user)
