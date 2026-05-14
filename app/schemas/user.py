@@ -48,7 +48,7 @@ class UserUpdate(BaseModel):
 
     address: Optional[str] = Field(None)
 
-    dob: Optional[str] = Field(None,examples={"example": "01-01-1998"})
+    dob: Optional[str] = Field(None,examples=["01-01-1998"])
 
 
 # ============================================================

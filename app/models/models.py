@@ -89,6 +89,9 @@ class User(TimestampMixin, Base):
     faculty = relationship("Faculty", back_populates="user", uselist=False)
     admin   = relationship("Admin",   back_populates="user", uselist=False)
 
+    # UPDATE AFTER ADDING HOD TABLE
+    hod = relationship("HOD",back_populates="user",uselist=False)
+
     def __repr__(self):
         return f"<User id={self.id} name={self.name!r} role={self.role!r}>"
 
@@ -147,6 +150,9 @@ class Department(TimestampMixin, Base):
     # One Department → many Faculty members
     faculty = relationship("Faculty", back_populates="department")
 
+    #UPDATE AFTER ADDING HOD TABLE
+    hod = relationship("HOD",back_populates="department",uselist=False)
+    
     def __repr__(self):
         return f"<Department id={self.id} name={self.name!r}>"
 
@@ -601,3 +607,33 @@ class Attendance(TimestampMixin, Base):
 
     def __repr__(self):
         return f"<Attendance id={self.id} student_id={self.student_id} status={self.status}>"
+    
+
+
+# ADDING HOD TABLE
+class HOD(TimestampMixin, Base):
+
+    __tablename__ = "hod"
+
+    id = Column(Integer, primary_key=True)
+
+    user_id = Column(
+        Integer,
+        ForeignKey("user.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True
+    )
+
+    department_id = Column(
+        Integer,
+        ForeignKey("department.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True
+    )
+
+    user = relationship("User", back_populates="hod")
+
+    department = relationship(
+        "Department",
+        back_populates="hod"
+    )

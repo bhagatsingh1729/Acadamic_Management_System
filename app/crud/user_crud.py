@@ -46,6 +46,9 @@ def create_user(db: Session,user_data: UserCreate) -> User:
         user_data.password
     )
 
+    # ADDED ROLE CHECK
+    if user_data.role.lower() not in ["student","faculty","admin","hod"]:
+        raise ValueError("Invalid role. Must be 'student', 'faculty', 'admin' or 'hod'")
     # ==========================================
     # Create ORM object
     # ==========================================
@@ -149,7 +152,7 @@ def delete_user(db: Session,user_id: int):
 
 # READ User via Role
 def read_users_by_role(db:Session,role:str):
-    if role.lower() in ["student","faculty","admin"]:
+    if role.lower() in ["student","faculty","admin","hod"]:
         user_db = db.query(User).filter(User.role == role).limit(100).all()
         if not user_db:
             raise HTTPException(status_code=404)
