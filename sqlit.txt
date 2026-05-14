@@ -1,0 +1,256 @@
+sqlit:
+-- SQLite database export
+PRAGMA foreign_keys = ON;
+
+BEGIN TRANSACTION;
+CREATE TABLE IF NOT EXISTS "User" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL UNIQUE,
+    "role" TEXT NOT NULL,
+    "uid" TEXT NOT NULL UNIQUE,
+    "password" TEXT NOT NULL
+);
+
+
+CREATE TABLE IF NOT EXISTS "Student" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "user_id" INTEGER NOT NULL,
+    "branch_id" INTEGER,
+    "usn" TEXT NOT NULL,
+    FOREIGN KEY("user_id") REFERENCES "User"("id"),
+    FOREIGN KEY("branch_id") REFERENCES "Branch"("id")
+);
+
+
+CREATE TABLE IF NOT EXISTS "Faculty" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "user_id" INTEGER NOT NULL,
+    "facultu_uid" TEXT NOT NULL,
+    "dept_id" INTEGER,
+    FOREIGN KEY("user_id") REFERENCES "User"("id"),
+    FOREIGN KEY("dept_id") REFERENCES "Department"("id")
+);
+
+
+CREATE TABLE IF NOT EXISTS "Admin" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "user_id" INTEGER NOT NULL,
+    "dept_id" INTEGER,
+    FOREIGN KEY("user_id") REFERENCES "User"("id")
+);
+
+
+CREATE TABLE IF NOT EXISTS "Department" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "name" TEXT NOT NULL UNIQUE,
+    "uid" TEXT NOT NULL
+);
+
+
+CREATE TABLE IF NOT EXISTS "Branch" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "name" TEXT NOT NULL,
+    "student_id" INTEGER NOT NULL
+);
+
+
+CREATE TABLE IF NOT EXISTS "Subject" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "subject" TEXT NOT NULL,
+    "subject_uid" INTEGER NOT NULL
+);
+
+
+CREATE TABLE IF NOT EXISTS "Student_Subject" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "student_id" INTEGER NOT NULL,
+    "subject_id" INTEGER NOT NULL,
+    FOREIGN KEY("student_id") REFERENCES "Student"("id"),
+    FOREIGN KEY("subject_id") REFERENCES "Subject"("id")
+);
+
+
+CREATE TABLE IF NOT EXISTS "Faculty_Subject" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "faculty_id" INTEGER NOT NULL,
+    "subject_id" INTEGER NOT NULL,
+    FOREIGN KEY("faculty_id") REFERENCES "Faculty"("id"),
+    FOREIGN KEY("subject_id") REFERENCES "Subject"("id")
+);
+
+
+CREATE TABLE IF NOT EXISTS "Class" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "faculty_id" INTEGER NOT NULL,
+    "subject_id" INTEGER NOT NULL,
+    "date" DATE,
+    "start_time" DATETIME,
+    "end_time" DATETIME,
+    FOREIGN KEY("subject_id") REFERENCES "Subject"("id"),
+    FOREIGN KEY("faculty_id") REFERENCES "Faculty"("id")
+);
+
+
+CREATE TABLE IF NOT EXISTS "Exam" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "type" TEXT NOT NULL,
+    "subject_id" INTEGER NOT NULL,
+    "max_marks" INTEGER NOT NULL,
+    "date" DATETIME NOT NULL,
+    FOREIGN KEY("subject_id") REFERENCES "Subject"("id")
+);
+
+
+CREATE TABLE IF NOT EXISTS "Marks" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "student_id" INTEGER NOT NULL,
+    "exam_id" INTEGER NOT NULL,
+    "score" INTEGER NOT NULL,
+    FOREIGN KEY("exam_id") REFERENCES "Exam"("id"),
+    FOREIGN KEY("student_id") REFERENCES "Student"("id")
+);
+
+
+CREATE TABLE IF NOT EXISTS "attendance" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "student_id" INTEGER NOT NULL,
+    "class_id" INTEGER NOT NULL,
+    "date" DATETIME NOT NULL,
+    "status" BOOLEAN NOT NULL,
+    FOREIGN KEY("student_id") REFERENCES "Student"("id"),
+    FOREIGN KEY("class_id") REFERENCES "Class"("id")
+);
+
+
+COMMIT;
+
+
+version1.1:
+
+-- SQLite database export
+PRAGMA foreign_keys = ON;
+
+BEGIN TRANSACTION;
+CREATE TABLE IF NOT EXISTS "User" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL UNIQUE,
+    "role" TEXT NOT NULL,
+    "uid" TEXT NOT NULL UNIQUE,
+    "password" TEXT NOT NULL
+);
+
+
+CREATE TABLE IF NOT EXISTS "Student" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "user_id" INTEGER NOT NULL,
+    "branch_id" INTEGER,
+    "usn" TEXT NOT NULL,
+    FOREIGN KEY("user_id") REFERENCES "User"("id"),
+    FOREIGN KEY("branch_id") REFERENCES "Branch"("id")
+);
+
+
+CREATE TABLE IF NOT EXISTS "Faculty" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "user_id" INTEGER NOT NULL,
+    "facultu_uid" TEXT NOT NULL,
+    "dept_id" INTEGER,
+    FOREIGN KEY("user_id") REFERENCES "User"("id"),
+    FOREIGN KEY("dept_id") REFERENCES "Department"("id")
+);
+
+
+CREATE TABLE IF NOT EXISTS "Admin" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "user_id" INTEGER NOT NULL,
+    "dept_id" INTEGER,
+    FOREIGN KEY("user_id") REFERENCES "User"("id")
+);
+
+
+CREATE TABLE IF NOT EXISTS "Department" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "name" TEXT NOT NULL UNIQUE,
+    "dept_uid" TEXT NOT NULL
+);
+
+
+CREATE TABLE IF NOT EXISTS "Branch" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "name" TEXT NOT NULL,
+    "branch_uid" TEXT NOT NULL
+);
+
+
+CREATE TABLE IF NOT EXISTS "Subject" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "subject" TEXT NOT NULL,
+    "subject_uid" INTEGER NOT NULL
+);
+
+
+CREATE TABLE IF NOT EXISTS "Student_Subject" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "student_id" INTEGER NOT NULL,
+    "subject_id" INTEGER NOT NULL,
+    FOREIGN KEY("student_id") REFERENCES "Student"("id"),
+    FOREIGN KEY("subject_id") REFERENCES "Subject"("id")
+);
+
+
+CREATE TABLE IF NOT EXISTS "Faculty_Subject" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "faculty_id" INTEGER NOT NULL,
+    "subject_id" INTEGER NOT NULL,
+    FOREIGN KEY("faculty_id") REFERENCES "Faculty"("id"),
+    FOREIGN KEY("subject_id") REFERENCES "Subject"("id")
+);
+
+
+CREATE TABLE IF NOT EXISTS "Class" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "faculty_id" INTEGER NOT NULL,
+    "subject_id" INTEGER NOT NULL,
+    "date" DATE,
+    "start_time" DATETIME,
+    "end_time" DATETIME,
+    FOREIGN KEY("subject_id") REFERENCES "Subject"("id"),
+    FOREIGN KEY("faculty_id") REFERENCES "Faculty"("id")
+);
+
+
+CREATE TABLE IF NOT EXISTS "Exam" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "type" TEXT NOT NULL,
+    "subject_id" INTEGER NOT NULL,
+    "max_marks" INTEGER NOT NULL,
+    "date" DATETIME NOT NULL,
+    FOREIGN KEY("subject_id") REFERENCES "Subject"("id")
+);
+
+
+CREATE TABLE IF NOT EXISTS "Marks" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "student_id" INTEGER NOT NULL,
+    "exam_id" INTEGER NOT NULL,
+    "score" INTEGER NOT NULL,
+    FOREIGN KEY("exam_id") REFERENCES "Exam"("id"),
+    FOREIGN KEY("student_id") REFERENCES "Student"("id")
+);
+
+
+CREATE TABLE IF NOT EXISTS "attendance" (
+    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    "student_id" INTEGER NOT NULL,
+    "class_id" INTEGER NOT NULL,
+    "date" DATETIME NOT NULL,
+    "status" BOOLEAN NOT NULL,
+    FOREIGN KEY("student_id") REFERENCES "Student"("id"),
+    FOREIGN KEY("class_id") REFERENCES "Class"("id")
+);
+
+
+COMMIT;
+
