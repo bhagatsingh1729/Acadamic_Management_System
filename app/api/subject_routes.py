@@ -3,42 +3,41 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 
-from app.schemas.user import (
-    UserCreate,
-    UserUpdate,
-    UserLogin,
-    UserResponse
+from app.schemas.subject import (
+    SubjectCreate,
+    SubjectUpdate,
+    SubjectResponse
 )
 
-from app.crud.user_crud import (
-    create_user,
-    get_all_users,
-    get_user_by_id,
-    get_user_by_email,
-    login_user,
-    update_user,
-    delete_user
+from app.crud.subject_crud import (
+    create_subject,
+    get_all_subjects,
+    get_subject_by_id,
+    get_subject_by_code,
+    get_subjects_by_semester,
+    update_subject,
+    delete_subject
 )
 
-router_user = APIRouter(
-    prefix="/users",
-    tags=["Users"]
+router_subject = APIRouter(
+    prefix="/subjects",
+    tags=["Subjects"]
 )
 
 
 # ------------------------------------------------
-# CREATE USER
+# CREATE SUBJECT
 # ------------------------------------------------
-@router_user.post("/", response_model=UserResponse)
-def create_user_route(
-    user_data: UserCreate,
+@router_subject.post("/", response_model=SubjectResponse)
+def create_subject_route(
+    subject_data: SubjectCreate,
     db: Session = Depends(get_db)
 ):
 
     try:
-        return create_user(
+        return create_subject(
             db,
-            user_data
+            subject_data
         )
 
     except ValueError as e:
@@ -49,29 +48,29 @@ def create_user_route(
 
 
 # ------------------------------------------------
-# GET ALL USERS
+# GET ALL SUBJECTS
 # ------------------------------------------------
-@router_user.get("/", response_model=list[UserResponse])
-def get_all_users_route(
+@router_subject.get("/", response_model=list[SubjectResponse])
+def get_all_subjects_route(
     db: Session = Depends(get_db)
 ):
 
-    return get_all_users(db)
+    return get_all_subjects(db)
 
 
 # ------------------------------------------------
-# GET USER BY ID
+# GET SUBJECT BY ID
 # ------------------------------------------------
-@router_user.get("/{user_id}", response_model=UserResponse)
-def get_user_route(
-    user_id: int,
+@router_subject.get("/{subject_id}", response_model=SubjectResponse)
+def get_subject_route(
+    subject_id: int,
     db: Session = Depends(get_db)
 ):
 
     try:
-        return get_user_by_id(
+        return get_subject_by_id(
             db,
-            user_id
+            subject_id
         )
 
     except ValueError as e:
@@ -82,18 +81,18 @@ def get_user_route(
 
 
 # ------------------------------------------------
-# GET USER BY EMAIL
+# GET SUBJECT BY CODE
 # ------------------------------------------------
-@router_user.get("/email/{email}", response_model=UserResponse)
-def get_user_by_email_route(
-    email: str,
+@router_subject.get("/code/{subject_code}", response_model=SubjectResponse)
+def get_subject_by_code_route(
+    subject_code: str,
     db: Session = Depends(get_db)
 ):
 
     try:
-        return get_user_by_email(
+        return get_subject_by_code(
             db,
-            email
+            subject_code
         )
 
     except ValueError as e:
@@ -104,43 +103,18 @@ def get_user_by_email_route(
 
 
 # ------------------------------------------------
-# LOGIN USER
+# GET SUBJECTS BY SEMESTER
 # ------------------------------------------------
-@router_user.post("/login", response_model=UserResponse)
-def login_user_route(
-    login_data: UserLogin,
+@router_subject.get("/semester/{semester}", response_model=list[SubjectResponse])
+def get_subjects_by_semester_route(
+    semester: int,
     db: Session = Depends(get_db)
 ):
 
     try:
-        return login_user(
+        return get_subjects_by_semester(
             db,
-            login_data.email,
-            login_data.password
-        )
-
-    except ValueError as e:
-        raise HTTPException(
-            status_code=401,
-            detail=str(e)
-        )
-
-
-# ------------------------------------------------
-# UPDATE USER
-# ------------------------------------------------
-@router_user.put("/{user_id}", response_model=UserResponse)
-def update_user_route(
-    user_id: int,
-    user_data: UserUpdate,
-    db: Session = Depends(get_db)
-):
-
-    try:
-        return update_user(
-            db,
-            user_id,
-            user_data
+            semester
         )
 
     except ValueError as e:
@@ -151,18 +125,42 @@ def update_user_route(
 
 
 # ------------------------------------------------
-# DELETE USER
+# UPDATE SUBJECT
 # ------------------------------------------------
-@router_user.delete("/{user_id}")
-def delete_user_route(
-    user_id: int,
+@router_subject.put("/{subject_id}", response_model=SubjectResponse)
+def update_subject_route(
+    subject_id: int,
+    subject_data: SubjectUpdate,
     db: Session = Depends(get_db)
 ):
 
     try:
-        return delete_user(
+        return update_subject(
             db,
-            user_id
+            subject_id,
+            subject_data
+        )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+
+
+# ------------------------------------------------
+# DELETE SUBJECT
+# ------------------------------------------------
+@router_subject.delete("/{subject_id}")
+def delete_subject_route(
+    subject_id: int,
+    db: Session = Depends(get_db)
+):
+
+    try:
+        return delete_subject(
+            db,
+            subject_id
         )
 
     except ValueError as e:

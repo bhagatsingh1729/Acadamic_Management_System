@@ -1,21 +1,28 @@
 from sqlalchemy.orm import Session
+from app.utils.security import hash_password, verify_password
 from app.models.models import User
-from app.utils.utils import get_user
-from app.schemas.user import (
-    UserCreate,
-    UserUpdate
-)
-from fastapi import HTTPException
-from app.core.security import hash_password
+from app.schemas.user import UserCreate, UserUpdate
 
 
-#Create User
-def create_user(db: Session,user_data: UserCreate) -> User:
+# ------------------------------------------------
+# CREATE USER
+# ------------------------------------------------
+def create_user(
+    db: Session,
+    user_data: UserCreate
+):
 
-    # ==========================================
-    # Check email uniqueness
-    # ==========================================
+    valid_roles = [
+        "student",
+        "faculty",
+        "admin"
+    ]
 
+    # role validation
+    if user_data.role not in valid_roles:
+        raise ValueError("Invalid role")
+
+    # email uniqueness
     existing_email = (
         db.query(User)
         .filter(User.email == user_data.email)
@@ -25,10 +32,7 @@ def create_user(db: Session,user_data: UserCreate) -> User:
     if existing_email:
         raise ValueError("Email already exists")
 
-    # ==========================================
-    # Check UID uniqueness
-    # ==========================================
-
+    # uid uniqueness
     existing_uid = (
         db.query(User)
         .filter(User.uid == user_data.uid)
@@ -38,22 +42,11 @@ def create_user(db: Session,user_data: UserCreate) -> User:
     if existing_uid:
         raise ValueError("UID already exists")
 
-    # ==========================================
-    # Hash password
-    # ==========================================
-
     hashed_password = hash_password(
         user_data.password
     )
 
-    # ADDED ROLE CHECK
-    if user_data.role.lower() not in ["student","faculty","admin","hod"]:
-        raise ValueError("Invalid role. Must be 'student', 'faculty', 'admin' or 'hod'")
-    # ==========================================
-    # Create ORM object
-    # ==========================================
-
-    db_user = User(
+    new_user = User(
         name=user_data.name,
         email=user_data.email,
         role=user_data.role,
@@ -61,100 +54,169 @@ def create_user(db: Session,user_data: UserCreate) -> User:
         password=hashed_password,
         phone_no=user_data.phone_no,
         dob=user_data.dob,
-        address=user_data.address,
+        address=user_data.address
     )
 
-    db.add(db_user)
+    db.add(new_user)
     db.commit()
-    db.refresh(db_user)
-    return db_user
+    db.refresh(new_user)
 
-#Get user by user_id
-def get_user_by_id(db: Session,user_id: int) -> User | None:
+    return new_user
 
-    return (
+
+# ------------------------------------------------
+# GET ALL USERS
+# ------------------------------------------------
+def get_all_users(db: Session):
+
+    users = db.query(User).all()
+
+    return users
+
+
+# ------------------------------------------------
+# GET USER BY ID
+# ------------------------------------------------
+def get_user_by_id(
+    db: Session,
+    user_id: int
+):
+
+    user = (
         db.query(User)
         .filter(User.id == user_id)
         .first()
     )
 
-# GET User via email
-def get_user_by_email(db: Session,email: str) -> User | None:
+    if not user:
+        raise ValueError("User not found")
 
-    return (
+    return user
+
+
+# ------------------------------------------------
+# GET USER BY EMAIL
+# ------------------------------------------------
+def get_user_by_email(
+    db: Session,
+    email: str
+):
+
+    user = (
         db.query(User)
         .filter(User.email == email)
         .first()
     )
 
+    if not user:
+        raise ValueError("User not found")
 
-# GET All Users
-def get_all_users(db: Session,skip: int = 0,limit: int = 100):
+    return user
 
-    return (
+
+# ------------------------------------------------
+# LOGIN USER
+# ------------------------------------------------
+def login_user(
+    db: Session,
+    email: str,
+    password: str
+):
+
+    user = (
         db.query(User)
-        .offset(skip)
-        .limit(limit)
-        .all()
+        .filter(User.email == email)
+        .first()
     )
 
-# Update User
-def update_user(db: Session,user_id: int,update_data: UserUpdate) -> User:
+    if not user:
+        raise ValueError("Invalid email or password")
 
-    db_user = (
+    valid_password = verify_password(
+        password,
+        user.password
+    )
+
+    if not valid_password:
+        raise ValueError("Invalid email or password")
+
+    return user
+
+
+# ------------------------------------------------
+# UPDATE USER
+# ------------------------------------------------
+def update_user(
+    db: Session,
+    user_id: int,
+    user_data: UserUpdate
+):
+
+    user = (
         db.query(User)
         .filter(User.id == user_id)
         .first()
     )
 
-    if not db_user:
+    if not user:
         raise ValueError("User not found")
 
-    # ==========================================
-    # Convert only provided fields
-    # ==========================================
+    # update email
+    if user_data.email:
 
-    update_dict = update_data.model_dump(
-        exclude_unset=True
-    )
-    print(f"DEBUG: Fields detected for update: {update_dict}")
-    # ==========================================
-    # Dynamically update fields
-    # ==========================================
+        existing_email = (
+            db.query(User)
+            .filter(
+                User.email == user_data.email,
+                User.id != user_id
+            )
+            .first()
+        )
 
-    for field, value in update_dict.items():
-        setattr(db_user, field, value)
+        if existing_email:
+            raise ValueError("Email already exists")
+
+        user.email = user_data.email
+
+    # update optional fields
+    if user_data.name:
+        user.name = user_data.name
+
+    if user_data.phone_no:
+        user.phone_no = user_data.phone_no
+
+    if user_data.dob:
+        user.dob = user_data.dob
+
+    if user_data.address:
+        user.address = user_data.address
 
     db.commit()
-    db.refresh(db_user)
-    return db_user
+    db.refresh(user)
 
-# Delete user via User_ID
-def delete_user(db: Session,user_id: int):
+    return user
 
-    db_user = (
+
+# ------------------------------------------------
+# DELETE USER
+# ------------------------------------------------
+def delete_user(
+    db: Session,
+    user_id: int
+):
+
+    user = (
         db.query(User)
         .filter(User.id == user_id)
         .first()
     )
 
-    if not db_user:
+    if not user:
         raise ValueError("User not found")
 
-    db.delete(db_user)
-
+    db.delete(user)
     db.commit()
 
     return {
         "message": "User deleted successfully"
     }
-
-
-# READ User via Role
-def read_users_by_role(db:Session,role:str):
-    if role.lower() in ["student","faculty","admin","hod"]:
-        user_db = db.query(User).filter(User.role == role).limit(100).all()
-        if not user_db:
-            raise HTTPException(status_code=404)
-        return user_db
-    raise HTTPException(status_code=500)
