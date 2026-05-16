@@ -76,7 +76,7 @@ class User(TimestampMixin, Base):
 
     __table_args__ = (
         # Replaces: CHECK(role IN ('student', 'faculty', 'admin'))
-        CheckConstraint("role IN ('student', 'faculty', 'admin')", name="ck_user_role"),
+        CheckConstraint("role IN ('student', 'faculty', 'admin','hod')", name="ck_user_role"),
         # Replaces: CREATE INDEX idx_user_email ON "User" (email)
         Index("idx_user_email", "email"),
         # Replaces: CREATE INDEX idx_user_name ON "User" (name)
@@ -441,12 +441,16 @@ class ClassSession(TimestampMixin, Base):
     date       = Column(Date,    nullable=False)
     start_time = Column(Time,    nullable=False)
     end_time   = Column(Time,    nullable=False)
+    #Adding Semester to make sure that students of only that semester can attend the class session
+    semester = Column(Integer, nullable=False)
     batch      = Column(String,  nullable=False)               # matches Student.batch
     section    = Column(String,  nullable=False, default="A")  # matches Student.section
 
     __table_args__ = (
         # Replaces: CHECK(end_time > start_time)
         CheckConstraint("end_time > start_time", name="ck_classsession_time"),
+        #Adding an check constraint for semester
+        CheckConstraint("semester >= 1 AND semester <= 8",name="ck_classsession_semester"),
         # Replaces: UNIQUE(faculty_id, subject_id, date, start_time, section)
         UniqueConstraint(
             "faculty_id", "subject_id", "date", "start_time", "section",

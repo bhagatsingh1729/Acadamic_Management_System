@@ -1,6 +1,6 @@
-from app_v2.database import SessionLocal, get_db
+from app.database import SessionLocal, get_db
 from sqlalchemy.orm import Session
-from app_v2.models.models import User
+from app.models.models import User
 
 
 def get_user(email: str, db: Session) -> User:

@@ -1,16 +1,26 @@
 from fastapi import FastAPI
-from app.api.user_routes import router_user
-from app.api.branch_routes import router_branch
-from app.api.department_routes import router_department
-from app.api.subject_routes import router_subject
-from app.api.student_routes import router_student
-from app.api.faculty_routes import router_faculty
-from app.api.admin_routes import router_admin
 from app.middleware.custom_middleware import TimeMiddleware
 from app.database import Base,engine
 from app.core.exception_handler import register_exception_handlers
+from app.api import (
+    user_routes,
+    branch_routes,
+    department_routes,
+    subject_routes,
+    student_routes,
+    faculty_routes,
+    admin_routes,
+    faculty_subject_routes,
+    branch_subject_routes,
+    attendance_routes,
+    class_session_routes,
+    student_subject,
+    hod_routes,
+    exam_routes,
+    marks_routes
+)
 
-from app.api import branch_subject_routes
+
 # Create all tables on startup
 Base.metadata.create_all(bind=engine)
 
@@ -18,13 +28,23 @@ app = FastAPI(title="Student Management API", description="API for managing stud
 
 app.add_middleware(TimeMiddleware)  
 
-app.include_router(router_user)
-app.include_router(router_branch)
-app.include_router(router_department)  
-app.include_router(router_subject)  
-app.include_router(router_student)
-app.include_router(router_faculty)
-app.include_router(router_admin)
+app.include_router(user_routes.router)
+app.include_router(branch_routes.router)
+app.include_router(department_routes.router)
+app.include_router(subject_routes.router)
+app.include_router(exam_routes.router)
+app.include_router(student_routes.router)
+app.include_router(hod_routes.router)
+app.include_router(faculty_routes.router)
+app.include_router(admin_routes.router)
+app.include_router(class_session_routes.router)
+app.include_router(attendance_routes.router)
+app.include_router(marks_routes.router)
+
+#junction tables related routes
+app.include_router(student_subject.router)
+app.include_router(faculty_subject_routes.router)
 app.include_router(branch_subject_routes.router)
+
     
 register_exception_handlers(app)

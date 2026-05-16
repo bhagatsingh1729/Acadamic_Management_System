@@ -19,7 +19,7 @@ from app.crud.subject_crud import (
     delete_subject
 )
 
-router_subject = APIRouter(
+router = APIRouter(
     prefix="/subjects",
     tags=["Subjects"]
 )
@@ -28,7 +28,7 @@ router_subject = APIRouter(
 # ------------------------------------------------
 # CREATE SUBJECT
 # ------------------------------------------------
-@router_subject.post("/", response_model=SubjectResponse)
+@router.post("/", response_model=SubjectResponse)
 def create_subject_route(
     subject_data: SubjectCreate,
     db: Session = Depends(get_db)
@@ -50,7 +50,7 @@ def create_subject_route(
 # ------------------------------------------------
 # GET ALL SUBJECTS
 # ------------------------------------------------
-@router_subject.get("/", response_model=list[SubjectResponse])
+@router.get("/", response_model=list[SubjectResponse])
 def get_all_subjects_route(
     db: Session = Depends(get_db)
 ):
@@ -61,7 +61,7 @@ def get_all_subjects_route(
 # ------------------------------------------------
 # GET SUBJECT BY ID
 # ------------------------------------------------
-@router_subject.get("/{subject_id}", response_model=SubjectResponse)
+@router.get("/{subject_id}", response_model=SubjectResponse)
 def get_subject_route(
     subject_id: int,
     db: Session = Depends(get_db)
@@ -83,7 +83,7 @@ def get_subject_route(
 # ------------------------------------------------
 # GET SUBJECT BY CODE
 # ------------------------------------------------
-@router_subject.get("/code/{subject_code}", response_model=SubjectResponse)
+@router.get("/code/{subject_code}", response_model=SubjectResponse)
 def get_subject_by_code_route(
     subject_code: str,
     db: Session = Depends(get_db)
@@ -105,7 +105,7 @@ def get_subject_by_code_route(
 # ------------------------------------------------
 # GET SUBJECTS BY SEMESTER
 # ------------------------------------------------
-@router_subject.get("/semester/{semester}", response_model=list[SubjectResponse])
+@router.get("/semester/{semester}", response_model=list[SubjectResponse])
 def get_subjects_by_semester_route(
     semester: int,
     db: Session = Depends(get_db)
@@ -127,7 +127,7 @@ def get_subjects_by_semester_route(
 # ------------------------------------------------
 # UPDATE SUBJECT
 # ------------------------------------------------
-@router_subject.put("/{subject_id}", response_model=SubjectResponse)
+@router.put("/{subject_id}", response_model=SubjectResponse)
 def update_subject_route(
     subject_id: int,
     subject_data: SubjectUpdate,
@@ -151,7 +151,7 @@ def update_subject_route(
 # ------------------------------------------------
 # DELETE SUBJECT
 # ------------------------------------------------
-@router_subject.delete("/{subject_id}")
+@router.delete("/{subject_id}")
 def delete_subject_route(
     subject_id: int,
     db: Session = Depends(get_db)

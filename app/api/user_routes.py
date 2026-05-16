@@ -20,7 +20,7 @@ from app.crud.user_crud import (
     delete_user
 )
 
-router_user = APIRouter(
+router = APIRouter(
     prefix="/users",
     tags=["Users"]
 )
@@ -29,7 +29,7 @@ router_user = APIRouter(
 # ------------------------------------------------
 # CREATE USER
 # ------------------------------------------------
-@router_user.post("/", response_model=UserResponse)
+@router.post("/", response_model=UserResponse)
 def create_user_route(
     user_data: UserCreate,
     db: Session = Depends(get_db)
@@ -51,7 +51,7 @@ def create_user_route(
 # ------------------------------------------------
 # GET ALL USERS
 # ------------------------------------------------
-@router_user.get("/", response_model=list[UserResponse])
+@router.get("/", response_model=list[UserResponse])
 def get_all_users_route(
     db: Session = Depends(get_db)
 ):
@@ -62,7 +62,7 @@ def get_all_users_route(
 # ------------------------------------------------
 # GET USER BY ID
 # ------------------------------------------------
-@router_user.get("/{user_id}", response_model=UserResponse)
+@router.get("/{user_id}", response_model=UserResponse)
 def get_user_route(
     user_id: int,
     db: Session = Depends(get_db)
@@ -84,7 +84,7 @@ def get_user_route(
 # ------------------------------------------------
 # GET USER BY EMAIL
 # ------------------------------------------------
-@router_user.get("/email/{email}", response_model=UserResponse)
+@router.get("/email/{email}", response_model=UserResponse)
 def get_user_by_email_route(
     email: str,
     db: Session = Depends(get_db)
@@ -106,7 +106,7 @@ def get_user_by_email_route(
 # ------------------------------------------------
 # LOGIN USER
 # ------------------------------------------------
-@router_user.post("/login", response_model=UserResponse)
+@router.post("/login", response_model=UserResponse)
 def login_user_route(
     login_data: UserLogin,
     db: Session = Depends(get_db)
@@ -129,7 +129,7 @@ def login_user_route(
 # ------------------------------------------------
 # UPDATE USER
 # ------------------------------------------------
-@router_user.put("/{user_id}", response_model=UserResponse)
+@router.put("/{user_id}", response_model=UserResponse)
 def update_user_route(
     user_id: int,
     user_data: UserUpdate,
@@ -153,7 +153,7 @@ def update_user_route(
 # ------------------------------------------------
 # DELETE USER
 # ------------------------------------------------
-@router_user.delete("/{user_id}")
+@router.delete("/{user_id}")
 def delete_user_route(
     user_id: int,
     db: Session = Depends(get_db)

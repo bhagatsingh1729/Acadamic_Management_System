@@ -21,13 +21,13 @@ from app.crud.branch_crud import (
     delete_branch
 )
 
-router_branch = APIRouter(
+router = APIRouter(
     prefix="/branches",
     tags=["Branches"]
 )
 
 
-@router_branch.post("/", response_model=BranchResponse)
+@router.post("/", response_model=BranchResponse)
 def create_branch_route(
     branch_data: BranchCreate,
     db: Session = Depends(get_db)
@@ -36,7 +36,7 @@ def create_branch_route(
     return create_branch(db, branch_data)
 
 
-@router_branch.get("/", response_model=list[BranchResponse])
+@router.get("/", response_model=list[BranchResponse])
 def get_all_branches_route(
     db: Session = Depends(get_db)
 ):
@@ -44,7 +44,7 @@ def get_all_branches_route(
     return get_all_branches(db)
 
 
-@router_branch.get("/{branch_id}", response_model=BranchResponse)
+@router.get("/{branch_id}", response_model=BranchResponse)
 def get_branch_by_id_route(
     branch_id: int,
     db: Session = Depends(get_db)
@@ -61,7 +61,7 @@ def get_branch_by_id_route(
     return branch
 
 
-@router_branch.get("/uid/{branch_uid}", response_model=BranchResponse)
+@router.get("/uid/{branch_uid}", response_model=BranchResponse)
 def get_branch_by_uid_route(
     branch_uid: str,
     db: Session = Depends(get_db)
@@ -78,7 +78,7 @@ def get_branch_by_uid_route(
     return branch
 
 
-@router_branch.put("/{branch_id}", response_model=BranchResponse)
+@router.put("/{branch_id}", response_model=BranchResponse)
 def update_branch_route(
     branch_id: int,
     branch_data: BranchUpdate,
@@ -100,7 +100,7 @@ def update_branch_route(
     return branch
 
 
-@router_branch.delete("/{branch_id}")
+@router.delete("/{branch_id}")
 def delete_branch_route(
     branch_id: int,
     db: Session = Depends(get_db)

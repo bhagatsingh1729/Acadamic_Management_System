@@ -17,7 +17,7 @@ from app.crud.admin_crud import (
 )
 
 
-router_admin = APIRouter(
+router = APIRouter(
     prefix="/admin",
     tags=["Admin"]
 )
@@ -26,7 +26,7 @@ router_admin = APIRouter(
 # =========================
 # CREATE ADMIN
 # =========================
-@router_admin.post("/")
+@router.post("/")
 def create_admin_route(
     admin_data: AdminCreate,
     db: Session = Depends(get_db)
@@ -38,7 +38,7 @@ def create_admin_route(
 # =========================
 # GET ALL ADMINS
 # =========================
-@router_admin.get("/")
+@router.get("/")
 def get_all_admins_route(
     db: Session = Depends(get_db)
 ):
@@ -49,7 +49,7 @@ def get_all_admins_route(
 # =========================
 # GET ADMIN BY ID
 # =========================
-@router_admin.get("/{admin_id}")
+@router.get("/{admin_id}")
 def get_admin_by_id_route(
     admin_id: int,
     db: Session = Depends(get_db)
@@ -64,7 +64,7 @@ def get_admin_by_id_route(
 # =========================
 # UPDATE ADMIN
 # =========================
-@router_admin.put("/{admin_id}")
+@router.put("/{admin_id}")
 def update_admin_route(
     admin_id: int,
     admin_data: AdminUpdate,
@@ -81,7 +81,7 @@ def update_admin_route(
 # =========================
 # DELETE ADMIN
 # =========================
-@router_admin.delete("/{admin_id}")
+@router.delete("/{admin_id}")
 def delete_admin_route(
     admin_id: int,
     db: Session = Depends(get_db)

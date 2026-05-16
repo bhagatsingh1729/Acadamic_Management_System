@@ -17,7 +17,7 @@ from app.crud.faculty_crud import (
 )
 
 
-router_faculty = APIRouter(
+router = APIRouter(
     prefix="/faculty",
     tags=["Faculty"]
 )
@@ -26,7 +26,7 @@ router_faculty = APIRouter(
 # =========================
 # CREATE FACULTY
 # =========================
-@router_faculty.post("/")
+@router.post("/")
 def create_faculty_route(
     faculty_data: FacultyCreate,
     db: Session = Depends(get_db)
@@ -38,7 +38,7 @@ def create_faculty_route(
 # =========================
 # GET ALL FACULTY
 # =========================
-@router_faculty.get("/")
+@router.get("/")
 def get_all_faculty_route(
     db: Session = Depends(get_db)
 ):
@@ -49,7 +49,7 @@ def get_all_faculty_route(
 # =========================
 # GET FACULTY BY ID
 # =========================
-@router_faculty.get("/{faculty_id}")
+@router.get("/{faculty_id}")
 def get_faculty_by_id_route(
     faculty_id: int,
     db: Session = Depends(get_db)
@@ -61,7 +61,7 @@ def get_faculty_by_id_route(
 # =========================
 # UPDATE FACULTY
 # =========================
-@router_faculty.put("/{faculty_id}")
+@router.put("/{faculty_id}")
 def update_faculty_route(
     faculty_id: int,
     faculty_data: FacultyUpdate,
@@ -78,7 +78,7 @@ def update_faculty_route(
 # =========================
 # DELETE FACULTY
 # =========================
-@router_faculty.delete("/{faculty_id}")
+@router.delete("/{faculty_id}")
 def delete_faculty_route(
     faculty_id: int,
     db: Session = Depends(get_db)

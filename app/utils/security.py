@@ -4,7 +4,8 @@ from passlib.context import CryptContext
 
 pwd_context = CryptContext(
     schemes=["bcrypt"],
-    deprecated="auto"
+    deprecated="auto",
+    bcrypt__truncate_error=False  # suppress the 72-byte hard error
 )
 
 def _get_prehash(password: str) -> str:

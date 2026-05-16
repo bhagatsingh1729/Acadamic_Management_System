@@ -23,13 +23,13 @@ from app.crud.student_crud import (
 )
 
 
-router_student = APIRouter(
+router = APIRouter(
     prefix="/students",
     tags=["Students"]
 )
 
 
-@router_student.post("/")
+@router.post("/")
 def create_student_route(
     data: StudentCreate,
     db: Session = Depends(get_db)
@@ -37,14 +37,14 @@ def create_student_route(
     return create_student(db, data)
 
 
-@router_student.get("/")
+@router.get("/")
 def get_all_students_route(
     db: Session = Depends(get_db)
 ):
     return get_all_students(db)
 
 
-@router_student.get("/{student_id}")
+@router.get("/{student_id}")
 def get_student_route(
     student_id: int,
     db: Session = Depends(get_db)
@@ -52,7 +52,7 @@ def get_student_route(
     return get_student_by_id(db, student_id)
 
 
-@router_student.get("/usn/{usn}")
+@router.get("/usn/{usn}")
 def get_student_by_usn_route(
     usn: str,
     db: Session = Depends(get_db)
@@ -60,7 +60,7 @@ def get_student_by_usn_route(
     return get_student_by_usn(db, usn)
 
 
-@router_student.get("/branch/{branch_id}")
+@router.get("/branch/{branch_id}")
 def get_students_by_branch_route(
     branch_id: int,
     db: Session = Depends(get_db)
@@ -68,7 +68,7 @@ def get_students_by_branch_route(
     return get_students_by_branch(db, branch_id)
 
 
-@router_student.get("/semester/{semester}")
+@router.get("/semester/{semester}")
 def get_students_by_semester_route(
     semester: int,
     db: Session = Depends(get_db)
@@ -76,7 +76,7 @@ def get_students_by_semester_route(
     return get_students_by_semester(db, semester)
 
 
-@router_student.get("/batch/{batch}")
+@router.get("/batch/{batch}")
 def get_students_by_batch_route(
     batch: str,
     db: Session = Depends(get_db)
@@ -84,7 +84,7 @@ def get_students_by_batch_route(
     return get_students_by_batch(db, batch)
 
 
-@router_student.get("/section/{section}")
+@router.get("/section/{section}")
 def get_students_by_section_route(
     section: str,
     db: Session = Depends(get_db)
@@ -92,7 +92,7 @@ def get_students_by_section_route(
     return get_students_by_section(db, section)
 
 
-@router_student.get("/cohort/filter")
+@router.get("/cohort/filter")
 def get_students_by_cohort_route(
     branch_id: int,
     semester: int,
@@ -109,7 +109,7 @@ def get_students_by_cohort_route(
     )
 
 
-@router_student.put("/{student_id}")
+@router.put("/{student_id}")
 def update_student_route(
     student_id: int,
     data: StudentUpdate,
@@ -122,7 +122,7 @@ def update_student_route(
     )
 
 
-@router_student.delete("/{student_id}")
+@router.delete("/{student_id}")
 def delete_student_route(
     student_id: int,
     db: Session = Depends(get_db)

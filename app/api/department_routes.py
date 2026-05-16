@@ -17,7 +17,7 @@ from app.crud.department_crud import (
     delete_department
 )
 
-router_department = APIRouter(
+router = APIRouter(
     prefix="/departments",
     tags=["Departments"]
 )
@@ -26,7 +26,7 @@ router_department = APIRouter(
 # ------------------------------------------------
 # CREATE DEPARTMENT
 # ------------------------------------------------
-@router_department.post("/", response_model=DepartmentResponse)
+@router.post("/", response_model=DepartmentResponse)
 def create_department_route(
     department_data: DepartmentCreate,
     db: Session = Depends(get_db)
@@ -48,7 +48,7 @@ def create_department_route(
 # ------------------------------------------------
 # GET ALL DEPARTMENTS
 # ------------------------------------------------
-@router_department.get("/", response_model=list[DepartmentResponse])
+@router.get("/", response_model=list[DepartmentResponse])
 def get_all_departments_route(
     db: Session = Depends(get_db)
 ):
@@ -59,7 +59,7 @@ def get_all_departments_route(
 # ------------------------------------------------
 # GET SINGLE DEPARTMENT
 # ------------------------------------------------
-@router_department.get("/{department_id}", response_model=DepartmentResponse)
+@router.get("/{department_id}", response_model=DepartmentResponse)
 def get_department_route(
     department_id: int,
     db: Session = Depends(get_db)
@@ -81,7 +81,7 @@ def get_department_route(
 # ------------------------------------------------
 # UPDATE DEPARTMENT
 # ------------------------------------------------
-@router_department.put("/{department_id}", response_model=DepartmentResponse)
+@router.put("/{department_id}", response_model=DepartmentResponse)
 def update_department_route(
     department_id: int,
     department_data: DepartmentUpdate,
@@ -105,7 +105,7 @@ def update_department_route(
 # ------------------------------------------------
 # DELETE DEPARTMENT
 # ------------------------------------------------
-@router_department.delete("/{department_id}")
+@router.delete("/{department_id}")
 def delete_department_route(
     department_id: int,
     db: Session = Depends(get_db)
