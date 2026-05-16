@@ -32,15 +32,6 @@ def create_user(
     if existing_email:
         raise ValueError("Email already exists")
 
-    # uid uniqueness
-    existing_uid = (
-        db.query(User)
-        .filter(User.uid == user_data.uid)
-        .first()
-    )
-
-    if existing_uid:
-        raise ValueError("UID already exists")
 
     hashed_password = hash_password(
         user_data.password
@@ -50,7 +41,6 @@ def create_user(
         name=user_data.name,
         email=user_data.email,
         role=user_data.role,
-        uid=user_data.uid,
         password=hashed_password,
         phone_no=user_data.phone_no,
         dob=user_data.dob,

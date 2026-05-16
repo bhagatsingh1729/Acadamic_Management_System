@@ -9,7 +9,6 @@ class UserCreate(BaseModel):
     name: str
     email: EmailStr
     role: str
-    uid: str
     password: str = Field(..., min_length=8, max_length=128)
 
     phone_no: Optional[str] = None
@@ -44,7 +43,6 @@ class UserResponse(BaseModel):
     name: str
     email: str
     role: str
-    uid: str
 
     phone_no: Optional[str]
     dob: Optional[str]

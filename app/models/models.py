@@ -68,8 +68,7 @@ class User(TimestampMixin, Base):
     id       = Column(Integer, primary_key=True, autoincrement=True)
     name     = Column(String,  nullable=False)
     email    = Column(String,  nullable=False, unique=True)
-    role     = Column(String,  nullable=False)       # 'student' | 'faculty' | 'admin'
-    uid      = Column(String,  nullable=False, unique=True)
+    role     = Column(String,  nullable=False)       # 'student' | 'faculty' | 'admin'|'hod'
     password = Column(String,  nullable=False)       # ALWAYS store bcrypt/argon2 hash
     phone_no = Column(String,  nullable=True)
     dob      = Column(String,  nullable=True)
@@ -78,8 +77,8 @@ class User(TimestampMixin, Base):
     __table_args__ = (
         # Replaces: CHECK(role IN ('student', 'faculty', 'admin'))
         CheckConstraint("role IN ('student', 'faculty', 'admin')", name="ck_user_role"),
-        # Replaces: CREATE INDEX idx_user_uid  ON "User" (uid)
-        Index("idx_user_uid",  "uid"),
+        # Replaces: CREATE INDEX idx_user_email ON "User" (email)
+        Index("idx_user_email", "email"),
         # Replaces: CREATE INDEX idx_user_name ON "User" (name)
         Index("idx_user_name", "name"),
     )
@@ -152,7 +151,7 @@ class Department(TimestampMixin, Base):
 
     #UPDATE AFTER ADDING HOD TABLE
     hod = relationship("HOD",back_populates="department",uselist=False)
-    
+
     def __repr__(self):
         return f"<Department id={self.id} name={self.name!r}>"
 
