@@ -13,3 +13,9 @@ venv.bak/
 test_v2.db
 app_v1/
 app_v2/
+AMS_db_v1.1.txt
+AMS_db_v1.2.txt
+AMS_db.jpeg
+ChartDB(AMS_db) _v1.1.json
+ChartDB(AMS_db).json
+sqlit.txt
