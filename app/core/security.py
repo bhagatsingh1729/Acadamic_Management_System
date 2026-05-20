@@ -1,49 +1,75 @@
-import hashlib
-import hmac
-import os
+from datetime import datetime
+from datetime import timedelta
+
+from jose import jwt
+from jose import JWTError
+
+from passlib.context import CryptContext
 
 
-# PBKDF2-HMAC-SHA256 settings
-_ITERATIONS = 260_000   # OWASP 2023 recommended minimum for PBKDF2-SHA256
-_HASH_NAME   = "sha256"
-_SALT_BYTES  = 32       # 256-bit salt
+SECRET_KEY = "your_secret_key"
+
+ALGORITHM = "HS256"
+
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 
-def hash_password(plain_password: str) -> str:
-    """
-    Hashes a plain-text password using PBKDF2-HMAC-SHA256.
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto"
+)
 
-    - No length limit (unlike bcrypt which caps at 72 bytes)
-    - Uses a random 256-bit salt per password
-    - Returns a single storable string: "salt_hex:key_hex"
-    - Zero external dependencies — uses Python's built-in hashlib
-    """
-    salt = os.urandom(_SALT_BYTES)
-    key = hashlib.pbkdf2_hmac(
-        _HASH_NAME,
-        plain_password.encode("utf-8"),
-        salt,
-        _ITERATIONS,
+
+def hash_password(password: str):
+
+    return pwd_context.hash(password)
+
+
+def verify_password(
+    plain_password: str,
+    hashed_password: str
+):
+
+    return pwd_context.verify(
+        plain_password,
+        hashed_password
     )
-    return f"{salt.hex()}:{key.hex()}"
 
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    Verifies a plain-text password against a stored PBKDF2 hash.
-    Uses hmac.compare_digest to prevent timing attacks.
-    """
+def create_access_token(data: dict):
+
+    to_encode = data.copy()
+
+    expire = (
+        datetime.utcnow()
+        + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+
+    to_encode.update({
+        "exp": expire
+    })
+
+    encoded_jwt = jwt.encode(
+        to_encode,
+        SECRET_KEY,
+        algorithm=ALGORITHM
+    )
+
+    return encoded_jwt
+
+
+def decode_access_token(token: str):
+
     try:
-        salt_hex, key_hex = hashed_password.split(":")
-    except ValueError:
-        return False  # malformed hash
 
-    salt = bytes.fromhex(salt_hex)
-    candidate_key = hashlib.pbkdf2_hmac(
-        _HASH_NAME,
-        plain_password.encode("utf-8"),
-        salt,
-        _ITERATIONS,
-    )
-    # constant-time comparison — prevents timing attacks
-    return hmac.compare_digest(candidate_key.hex(), key_hex)
+        payload = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM]
+        )
+
+        return payload
+
+    except JWTError:
+
+        return None

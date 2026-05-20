@@ -76,7 +76,7 @@ class User(TimestampMixin, Base):
 
     __table_args__ = (
         # Replaces: CHECK(role IN ('student', 'faculty', 'admin'))
-        CheckConstraint("role IN ('student', 'faculty', 'admin','hod')", name="ck_user_role"),
+        CheckConstraint("role IN ('student', 'faculty', 'admin', 'hod')", name="ck_user_role"),
         # Replaces: CREATE INDEX idx_user_email ON "User" (email)
         Index("idx_user_email", "email"),
         # Replaces: CREATE INDEX idx_user_name ON "User" (name)
@@ -298,7 +298,7 @@ class Student(TimestampMixin, Base):
 
     id        = Column(Integer, primary_key=True, autoincrement=True)
     user_id   = Column(Integer, ForeignKey("user.id",   ondelete="CASCADE"),  nullable=False, unique=True)
-    branch_id = Column(Integer, ForeignKey("branch.id", ondelete="SET NULL"), nullable=True)
+    branch_id = Column(Integer, ForeignKey("branch.id", ondelete="SET NULL"), nullable=False) #made branch_id nullable=False to enforce that every student must belong to a branch
     usn       = Column(String,  nullable=False, unique=True)
     semester  = Column(Integer, nullable=False)
     batch     = Column(String,  nullable=False)              # e.g. "2023-27"
