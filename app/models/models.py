@@ -75,8 +75,8 @@ class User(TimestampMixin, Base):
     address  = Column(String,  nullable=True)
 
     __table_args__ = (
-        # Replaces: CHECK(role IN ('student', 'faculty', 'admin'))
-        CheckConstraint("role IN ('student', 'faculty', 'admin', 'hod')", name="ck_user_role"),
+        # Replaces: CHECK(role IN ('student', 'faculty', 'admin','hod','super_admin'))
+        CheckConstraint("role IN ('student', 'faculty', 'admin', 'hod', 'super_admin')", name="ck_user_role"),
         # Replaces: CREATE INDEX idx_user_email ON "User" (email)
         Index("idx_user_email", "email"),
         # Replaces: CREATE INDEX idx_user_name ON "User" (name)
@@ -90,6 +90,13 @@ class User(TimestampMixin, Base):
 
     # UPDATE AFTER ADDING HOD TABLE
     hod = relationship("HOD",back_populates="user",uselist=False)
+    #Adding relationship for Super Admin
+    super_admin = relationship(
+        "SuperAdmin",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete"
+    )
 
     def __repr__(self):
         return f"<User id={self.id} name={self.name!r} role={self.role!r}>"
@@ -639,4 +646,23 @@ class HOD(TimestampMixin, Base):
     department = relationship(
         "Department",
         back_populates="hod"
+    )
+
+#Adding Super Admin Table
+class SuperAdmin(TimestampMixin,Base):
+
+    __tablename__ = "super_admin"
+
+    id = Column(Integer, primary_key=True)
+
+    user_id = Column(
+        Integer,
+        ForeignKey("user.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False
+    )
+
+    user = relationship(
+        "User",
+        back_populates="super_admin"
     )
