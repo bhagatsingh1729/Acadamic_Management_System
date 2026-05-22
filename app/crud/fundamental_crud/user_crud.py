@@ -187,6 +187,34 @@ def update_user(
 
     return user
 
+#------------------------------------------------
+# UPDATE USER PASSWORD
+#------------------------------------------------
+def update_user_password(
+    db: Session,
+    user_id: int,
+    new_password: str
+):
+
+    user = (
+        db.query(User)
+        .filter(User.id == user_id)
+        .first()
+    )
+
+    if not user:
+        raise ValueError("User not found")
+
+    hashed_password = hash_password(new_password)
+
+    user.password = hashed_password
+
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "message": "Password updated successfully"
+    }
 
 # ------------------------------------------------
 # DELETE USER

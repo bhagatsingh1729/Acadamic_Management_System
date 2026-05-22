@@ -43,7 +43,8 @@ def create_subject(
     new_subject = Subject(
         name=subject_data.name,
         code=subject_data.code,
-        semester=subject_data.semester
+        semester=subject_data.semester,
+        credits=subject_data.credits
     )
 
     db.add(new_subject)
@@ -182,6 +183,13 @@ def update_subject(
             raise ValueError("Semester must be between 1 and 8")
 
         subject.semester = subject_data.semester
+    # update credits
+    if subject_data.credits is not None:
+
+        if subject_data.credits <= 0 or subject_data.credits > 12:
+            raise ValueError("Credits must be between 1 and 12")
+
+        subject.credits = subject_data.credits
 
     db.commit()
     db.refresh(subject)

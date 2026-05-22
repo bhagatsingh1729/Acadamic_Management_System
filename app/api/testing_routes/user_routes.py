@@ -17,7 +17,8 @@ from app.crud.fundamental_crud.user_crud import (
     get_user_by_email,
     login_user,
     update_user,
-    delete_user
+    delete_user,
+    update_user_password
 )
 
 router = APIRouter(
@@ -149,7 +150,29 @@ def update_user_route(
             detail=str(e)
         )
 
+# ------------------------------------------------
+#Update User Password
+# ------------------------------------------------
+@router.put("/{user_id}/password")
+def update_user_password_route(
+    user_id: int,
+    new_password: str,
+    db: Session = Depends(get_db)
+):
 
+    try:
+        return update_user_password(
+            db,
+            user_id,
+            new_password
+        )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+    
 # ------------------------------------------------
 # DELETE USER
 # ------------------------------------------------

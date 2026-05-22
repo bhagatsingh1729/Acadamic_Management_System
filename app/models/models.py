@@ -179,10 +179,13 @@ class Subject(TimestampMixin, Base):
     name     = Column(String,  nullable=False, unique=True)
     code     = Column(String,  nullable=False, unique=True)  # e.g. "CS301", "MA201"
     semester = Column(Integer, nullable=False)
+    credits  = Column(Integer, nullable=False) # this an digit value/weightage given to a subject
 
     __table_args__ = (
         # Replaces: CHECK(semester >= 1 AND semester <= 8)
         CheckConstraint("semester >= 1 AND semester <= 8", name="ck_subject_semester"),
+        # Replaces: CHECK(credits > 0 AND credits <= 5)
+        CheckConstraint("credits > 0 AND credits <= 12", name="ck_subject_credits"),
         # Replaces: CREATE INDEX idx_subject_code ON "Subject" (code)
         Index("idx_subject_code", "code"),
     )
@@ -217,7 +220,7 @@ class Subject(TimestampMixin, Base):
     )
 
     def __repr__(self):
-        return f"<Subject id={self.id} code={self.code!r} semester={self.semester}>"
+        return f"<Subject id={self.id} code={self.code!r} semester={self.semester} credits={self.credits}>"
 
 
 # =============================================================
