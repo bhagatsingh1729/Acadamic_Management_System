@@ -3,6 +3,7 @@ from app.middleware.custom_middleware import TimeMiddleware
 from app.database import Base,engine
 from app.core.exception_handler import register_exception_handlers
 from app.api.testing_routes import (
+    super_admin_routes,
     user_routes,
     branch_routes,
     department_routes,
@@ -40,6 +41,7 @@ app.include_router(admin_routes.router)
 app.include_router(class_session_routes.router)
 app.include_router(attendance_routes.router)
 app.include_router(marks_routes.router)
+app.include_router(super_admin_routes.router) # testing routes for super admin, can be removed later
 
 #junction tables related routes
 app.include_router(student_subject.router)
