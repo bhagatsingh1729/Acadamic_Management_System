@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from app.models.models import User
 
 from app.schemas.auth_schema import LoginSchema
-from app.utils.security import verify_password
-
+#from app.utils.security import verify_password
+from app.core.security import verify_password
 
 from app.core.security import create_access_token
 
