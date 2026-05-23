@@ -1,16 +1,15 @@
-from fastapi import APIRouter
-from fastapi import Depends
-from fastapi import HTTPException
+# =============================================================
+# api/auth_routes.py
+# =============================================================
 
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-
-from app.schemas.auth_schema import LoginSchema
 from app.schemas.auth_schema import TokenResponseSchema
-
 from app.services.auth_service import login_user
-
+from app.schemas.auth_schema import LoginSchema
 
 router = APIRouter(
     prefix="/auth",
@@ -23,20 +22,16 @@ router = APIRouter(
     response_model=TokenResponseSchema
 )
 def login(
-    data: LoginSchema,
+    form_data: OAuth2PasswordRequestForm = Depends(),  # ← accepts form data
     db: Session = Depends(get_db)
 ):
+    # form_data.username holds the email (Swagger sends it that way)
+    data = LoginSchema(
+        email=form_data.username,
+        password=form_data.password
+    )
 
     try:
-
-        return login_user(
-            db,
-            data
-        )
-
+        return login_user(db, data)
     except ValueError as e:
-
-        raise HTTPException(
-            status_code=400,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=400, detail=str(e))
