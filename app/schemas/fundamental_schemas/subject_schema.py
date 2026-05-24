@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 
 
@@ -31,5 +31,4 @@ class SubjectResponse(BaseModel):
     semester: int
     credits: int
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
