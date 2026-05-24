@@ -1,9 +1,9 @@
 from sqlalchemy.orm import Session
 from app.models.models import User
-from app.schemas.services_schemas.auth_schema import LoginSchema
+
 
 from app.core.security import verify_password
-from app.schemas.services_schemas.auth_schema import LoginSchema, TokenResponseSchema 
+from app.schemas.workflow_schemas.auth_schema import LoginSchema, TokenResponseSchema 
 from app.core.security import create_access_token
 
 
