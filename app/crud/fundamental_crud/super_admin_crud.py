@@ -8,7 +8,7 @@ from app.schemas.fundamental_schemas.super_admin_schema import (
     SuperAdminUpdate
 )
 
-from app.utils.security import hash_password
+from app.core.security import hash_password
 from sqlalchemy.exc import IntegrityError
 
 # =========================================================
@@ -210,7 +210,7 @@ def delete_super_admin(db: Session):
 
     db.delete(super_admin)
 
-    db.delete(user)
+    db.delete(user)#this deletes the data from user table
 
     db.commit()
 

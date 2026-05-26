@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from passlib.context import CryptContext
-from app.utils.security import hash_password
+from app.core.security import hash_password
 from app.models.models import User, Admin, Branch
 
 from app.schemas.fundamental_schemas.admin_schema import (
