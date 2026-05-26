@@ -6,21 +6,35 @@ from app.schemas.fundamental_schemas.branch_schema import (
     BranchCreate,
     BranchUpdate
 )
-
+from sqlalchemy.exc import SQLAlchemyError
 from app.crud.fundamental_crud.student_crud import delete_student
 
+from sqlalchemy.exc import SQLAlchemyError
+
 def create_branch(db: Session, branch_data: BranchCreate):
-
+    # 1. Check for existing branch
+    existing_branch = db.query(Branch).filter(Branch.branch_uid == branch_data.branch_uid.upper()).first() 
+    if existing_branch:
+        raise HTTPException(status_code=409, detail="Branch already exists")
+    
+    # 2. Create the branch model instance
+    # Tip: Use .model_dump() if using Pydantic V2 to map fields automatically
+    # branch = Branch(**branch_data.model_dump())-> this menthod work
     branch = Branch(
-        name=branch_data.name,
-        branch_uid=branch_data.branch_uid
+        name = branch_data.name.upper(),
+        branch_uid = branch_data.branch_uid.upper()
     )
-
-    db.add(branch)
-    db.commit()
-    db.refresh(branch)
-
-    return branch
+    
+    try:
+        db.add(branch)
+        db.commit()
+        db.refresh(branch)
+        return branch
+    except SQLAlchemyError as e:
+        # Rollback is crucial when an error occurs during commit
+        db.rollback()
+        # Log the actual error 'e' internally, but return a clean error to the user
+        raise HTTPException(status_code=500, detail="Database operation failed")
 
 
 def get_all_branches(db: Session):
@@ -41,7 +55,7 @@ def get_branch_by_uid(db: Session, branch_uid: str):
 
     return (
         db.query(Branch)
-        .filter(Branch.branch_uid == branch_uid)
+        .filter(Branch.branch_uid == branch_uid.upper())
         .first()
     )
 
@@ -62,6 +76,10 @@ def update_branch(
         return None
 
     update_data = branch_data.model_dump(exclude_unset=True)
+
+    # enforcing uppercase to branch_uid
+    if "branch_uid" in update_data:
+        update_data["branch_uid"] = branch_data.branch_uid.upper()
 
     for key, value in update_data.items():
         setattr(branch, key, value)

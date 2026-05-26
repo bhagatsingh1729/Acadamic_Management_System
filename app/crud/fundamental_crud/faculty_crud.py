@@ -32,7 +32,7 @@ def create_faculty(db: Session, faculty_data: FacultyCreate):
     # -------------------------
     existing_employee = (
         db.query(Faculty)
-        .filter(Faculty.employee_id == faculty_data.employee_id)
+        .filter(Faculty.employee_id == faculty_data.employee_id.upper())
         .first()
     )
 
@@ -88,7 +88,7 @@ def create_faculty(db: Session, faculty_data: FacultyCreate):
     # -------------------------
     new_faculty = Faculty(
         user_id=new_user.id,
-        employee_id=faculty_data.employee_id,
+        employee_id=faculty_data.employee_id.upper(),
         dept_id=faculty_data.dept_id
     )
 

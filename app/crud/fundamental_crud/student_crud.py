@@ -33,7 +33,7 @@ def create_student(db: Session, data: StudentCreate):
 
     existing_usn = (
         db.query(Student)
-        .filter(Student.usn == data.usn)
+        .filter(Student.usn == data.usn.upper())
         .first()
     )
 
@@ -51,23 +51,6 @@ def create_student(db: Session, data: StudentCreate):
             detail="branch not found"
         )
     
-    """"
-    # Commeting this because we are enforcing branch_id to be non-nullable, so this check is redundant. If branch_id is null, the database will throw an error.
-     if data.branch_id is not None:
-    if data.branch_id:
-
-        branch = (
-            db.query(Branch)
-            .filter(Branch.id == data.branch_id)
-            .first()
-        )
-
-        if not branch:
-            raise HTTPException(
-                status_code=404,
-                detail="branch not found"
-            )
-    """
     try:
 
         user = User(
@@ -89,11 +72,11 @@ def create_student(db: Session, data: StudentCreate):
         student = Student(
             user_id=user.id,
 
-            usn=data.usn,
+            usn=data.usn.upper(),# let usn be uppercase so it would be easy to query and avoid duplicate usn because of case
 
             semester=data.semester,
             batch=data.batch,
-            section=data.section,
+            section=data.section.upper(),# Same reason here as well
 
             branch_id=data.branch_id
         )
@@ -136,7 +119,7 @@ def get_student_by_usn(db: Session, usn: str):
 
     student = (
         db.query(Student)
-        .filter(Student.usn == usn)
+        .filter(Student.usn == usn.upper())
         .first()
     )
 
@@ -185,7 +168,7 @@ def get_students_by_section(db: Session, section: str):
 
     return (
         db.query(Student)
-        .filter(Student.section == section)
+        .filter(Student.section == section.upper())
         .all()
     )
 
@@ -204,7 +187,7 @@ def get_students_by_cohort(
             Student.branch_id == branch_id,
             Student.semester == semester,
             Student.batch == batch,
-            Student.section == section
+            Student.section == section.upper()
         )
         .all()
     )
@@ -241,12 +224,24 @@ def update_student(
                 status_code=404,
                 detail="branch not found"
             )
-
+    """
     update_data = data.model_dump(exclude_unset=True)
 
     for key, value in update_data.items():
         setattr(student, key, value)
+    """
+    # to make sure section and usn is uppercase
+    update_data = data.model_dump(exclude_unset=True)
 
+    # Force uppercase for specific fields if they exist in the update
+    if 'section' in update_data:
+        update_data['section'] = update_data['section'].upper()
+    if 'usn' in update_data:
+        update_data['usn'] = update_data['usn'].upper()
+
+    for key, value in update_data.items():
+        setattr(student, key, value)
+        
     db.commit()
     db.refresh(student)
 
