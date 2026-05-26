@@ -9,17 +9,13 @@
 from datetime import date, time
 from typing import Optional
 from pydantic import BaseModel, ConfigDict
-
+from app.schemas.fundamental_schemas.branch_schema import BranchResponse
 
 # =============================================================
 # BRANCH RESPONSE
 # =============================================================
-class BranchResponse(BaseModel):
-    id: int
-    name: str
-    branch_uid: str
-
-    model_config = ConfigDict(from_attributes=True)
+class BranchResponse(BranchResponse):
+    pass
 
 
 # =============================================================

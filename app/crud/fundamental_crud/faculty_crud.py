@@ -3,7 +3,7 @@ from fastapi import HTTPException
 
 from app.models.models import User, Faculty, Department
 from app.schemas.fundamental_schemas.faculty_schema import FacultyCreate, FacultyUpdate
-from app.utils.security import hash_password
+from app.core.security import hash_password
 
 
 

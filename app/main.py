@@ -23,7 +23,7 @@ from app.middleware.custom_middleware import TimeMiddleware
 from app.api.v1.auth_routes import router as auth_router
 from app.api.v1.user_routes import router as user_router
 from app.api.v1.student_routes import router as student_router
-
+from app.api.v1.branch_routes import router as branch_router
 # ── Create all tables on startup ─────────────────────────────
 Base.metadata.create_all(bind=engine)
 
@@ -46,7 +46,7 @@ API_PREFIX = "/api/v1"
 app.include_router(auth_router)                                    # /auth/login
 app.include_router(user_router)                                    # /users/me
 app.include_router(student_router, prefix=API_PREFIX)              # /api/v1/students
-
+app.include_router(branch_router,prefix=API_PREFIX)
 # NOTE: Add more routers here as each service is built.
 # Example:
 #   from app.api.v1.faculty_routes import router as faculty_router

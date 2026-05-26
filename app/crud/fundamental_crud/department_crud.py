@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from app.models.models import Department
+from app.models.models import Department,User,HOD,Faculty
 from app.schemas.fundamental_schemas.department_schema import (
     DepartmentCreate,
     DepartmentUpdate
@@ -138,23 +138,33 @@ def update_department(
 # ------------------------------------------------
 # DELETE DEPARTMENT
 # ------------------------------------------------
-def delete_department(
-    db: Session,
-    department_id: int
-):
-
-    department = (
-        db.query(Department)
-        .filter(Department.id == department_id)
-        .first()
-    )
-
+def delete_department(db: Session, department_id: int):
+    department = db.query(Department).filter(Department.id == department_id).first()
+    
     if not department:
         raise ValueError("Department not found")
 
-    db.delete(department)
-    db.commit()
+    # 1. Handle HOD and their User record
+    if department.hod:
+        hod_user_id = department.hod.user_id
+        db.delete(department.hod) # Delete the HOD record first
+        db.query(User).filter(User.id == hod_user_id).delete(synchronize_session=False)
 
-    return {
-        "message": "Department deleted successfully"
-    }
+    # 2. Handle Faculty and their User records
+    # We collect all faculty IDs to delete their linked users in one bulk query
+    faculty_members = department.faculty
+    if faculty_members:
+        faculty_user_ids = [f.user_id for f in faculty_members]
+        
+        # Delete Faculty records
+        for f in faculty_members:
+            db.delete(f)
+            
+        # Bulk delete all associated Users in one go
+        db.query(User).filter(User.id.in_(faculty_user_ids)).delete(synchronize_session=False)
+
+    # 3. Finally, delete the department
+    db.delete(department)
+    
+    db.commit()
+    return {"message": "Department and all related users deleted successfully"}

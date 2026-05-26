@@ -1,16 +1,13 @@
 from sqlalchemy.orm import Session
-from app.models.models import Branch
+from app.models.models import Branch, Student, Admin, User, StudentSubject, BranchSubject
 from fastapi import HTTPException
 
-
-from sqlalchemy.orm import Session
-
-from app.models.models import Branch
 from app.schemas.fundamental_schemas.branch_schema import (
     BranchCreate,
     BranchUpdate
 )
 
+from app.crud.fundamental_crud.student_crud import delete_student
 
 def create_branch(db: Session, branch_data: BranchCreate):
 
@@ -76,21 +73,49 @@ def update_branch(
 
 
 def delete_branch(db: Session, branch_id: int):
+    try:
+        # 1. Fetch data
+        branch = db.query(Branch).filter(Branch.id == branch_id).first()
+        if not branch: return None
 
-    branch = (
-        db.query(Branch)
-        .filter(Branch.id == branch_id)
-        .first()
-    )
+        student_ids = [row[0] for row in db.query(Student.id).filter(Student.branch_id == branch_id).all()]
+        
+        # 2. Cleanup students
+        if student_ids:
+            db.query(StudentSubject).filter(StudentSubject.student_id.in_(student_ids)).delete(synchronize_session=False)
 
-    if not branch:
-        return None
+            # 3. Cleanup Users (Linked to Students)
+            user_ids = [u[0] for u in db.query(Student.user_id).filter(Student.id.in_(student_ids)).all()]
+            if user_ids:
+                db.query(User).filter(User.id.in_(user_ids)).delete(synchronize_session=False)
+            
+            # 4. Cleanup Students
+            db.query(Student).filter(Student.branch_id == branch_id).delete(synchronize_session=False)
 
-    db.delete(branch)
-    db.commit()
+        # 5. Cleanup Admin
+        branch_admin = db.query(Admin).filter(Admin.branch_id == branch_id).first()
+        if branch_admin:
+            db.query(User).filter(User.id == branch_admin.user_id).delete(synchronize_session=False)
+            db.delete(branch_admin)
 
-    return branch
+        # delete branch_subject
+        # 1. Correctly query the IDs of the BranchSubject records you want to delete
+        branch_subjects = db.query(BranchSubject.id).filter(BranchSubject.branch_id == branch.id).all()
+        branch_subject_ids = [bs[0] for bs in branch_subjects]
 
+        # 2. Correctly delete them using a filter
+        if branch_subject_ids:
+            db.query(BranchSubject).filter(BranchSubject.id.in_(branch_subject_ids)).delete(synchronize_session=False)
+
+        # 6. Delete Branch
+        db.delete(branch)
+        
+        db.commit()
+        return {'message': 'branch deleted'}
+        
+    except Exception as e:
+        db.rollback()
+        raise e
 
 
 

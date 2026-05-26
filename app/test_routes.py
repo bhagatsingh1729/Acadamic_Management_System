@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api import auth_routes
+#from app.api import auth_routes
 from app.middleware.custom_middleware import TimeMiddleware
 from app.database import Base,engine
 from app.core.exception_handler import register_exception_handlers
@@ -30,7 +30,7 @@ app = FastAPI(title="Student Management API", description="API for managing stud
 
 app.add_middleware(TimeMiddleware)  
 
-app.include_router(auth_routes.router)
+#app.include_router(auth_routes.router)
 app.include_router(user_routes.router)
 app.include_router(branch_routes.router)
 app.include_router(department_routes.router)

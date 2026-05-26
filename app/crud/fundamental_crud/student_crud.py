@@ -4,14 +4,15 @@ from sqlalchemy.orm import Session
 from app.models.models import (
     User,
     Student,
-    Branch
+    Branch,
+    StudentSubject
 )
 
 
 from app.schemas.fundamental_schemas.student_schema import StudentCreate, StudentUpdate
 
 
-from app.utils.security import hash_password
+from app.core.security import hash_password
 
 
 def create_student(db: Session, data: StudentCreate):
@@ -266,9 +267,16 @@ def delete_student(db: Session, student_id: int):
             detail="student not found"
         )
 
-    db.delete(student)
-    db.delete(student.user)#adding this line so that when a student is deleted, their associated user record is also deleted
+    # Deleting the student enrollment related data
+    db.query(StudentSubject).filter(StudentSubject.student_id == student_id).delete(synchronize_session=False)
+    
+    if student.user:
+        user_to_delete = student.user
+        db.delete(user_to_delete)#adding this line so that when a student is getting deleted, their associated user record is also deleted
 
+
+    db.delete(student)
+    
     db.commit()
 
 

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.models import User, Department, HOD
 from app.schemas.fundamental_schemas.hod_schema import HodCreate
-from app.utils.security import hash_password
+from app.core.security import hash_password
 
 
 

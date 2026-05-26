@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.utils.security import hash_password, verify_password
+from app.core.security import hash_password, verify_password
 from app.models.models import User
 from app.schemas.fundamental_schemas.user_schema import UserCreate, UserUpdate
 from app.models.models import Student, Faculty, Admin, HOD
