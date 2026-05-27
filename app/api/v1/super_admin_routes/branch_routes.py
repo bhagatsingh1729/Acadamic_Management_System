@@ -11,14 +11,14 @@ from app.core.dependencies import (
     get_current_student,
     get_current_user,
 )
-from app.services.branch_services.branch_service import(
+from app.services.super_admin_services.branch_service import(
     create_branch_service,
     update_branch_service,
     get_all_branches_service,
     get_branch_via_uid_service,
     delete_branch_service
 )
-from app.schemas.services_schemas.branch_schema import BranchCreate,BranchResponse,BranchUpdate
+from app.schemas.services_schemas.super_admin_schemas.branch_schemas import BranchCreate,BranchResponse,BranchUpdate
 
 router = APIRouter(prefix="/branch", tags=["branch"])
 

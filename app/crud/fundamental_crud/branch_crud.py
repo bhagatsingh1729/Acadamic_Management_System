@@ -73,14 +73,15 @@ def update_branch(
     )
 
     if not branch:
-        return None
+        raise HTTPException(status_code=404,detail='branch not found')
 
     update_data = branch_data.model_dump(exclude_unset=True)
 
     # enforcing uppercase to branch_uid
     if "branch_uid" in update_data:
         update_data["branch_uid"] = branch_data.branch_uid.upper()
-
+    if "name" in update_data:
+        update_data["name"] = branch_data.branch_uid.upper()
     for key, value in update_data.items():
         setattr(branch, key, value)
 

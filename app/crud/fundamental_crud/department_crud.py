@@ -5,7 +5,7 @@ from app.schemas.fundamental_schemas.department_schema import (
     DepartmentCreate,
     DepartmentUpdate
 )
-
+from fastapi import HTTPException
 
 # ------------------------------------------------
 # CREATE DEPARTMENT
@@ -14,30 +14,31 @@ def create_department(
     db: Session,
     department_data: DepartmentCreate
 ):
-
+    department_data_name = department_data.name.upper()
+    department_data_uid = department_data.dept_uid.upper()
     # check department name uniqueness
     existing_department = (
         db.query(Department)
-        .filter(Department.name == department_data.name)
+        .filter(Department.name == department_data_name)
         .first()
     )
 
     if existing_department:
-        raise ValueError("Department name already exists")
+        raise HTTPException(status_code=409,detail="Department name already exists")
 
     # check uid uniqueness
     existing_uid = (
         db.query(Department)
-        .filter(Department.dept_uid == department_data.dept_uid)
+        .filter(Department.dept_uid == department_data_uid)
         .first()
     )
 
     if existing_uid:
-        raise ValueError("Department UID already exists")
+        raise HTTPException(status_code=409,detail="Department UID already exists")
 
     new_department = Department(
-        name=department_data.name,
-        dept_uid=department_data.dept_uid
+        name=department_data.name.upper(),
+        dept_uid=department_data.dept_uid.upper()
     )
 
     db.add(new_department)
@@ -72,7 +73,7 @@ def get_department_by_id(
     )
 
     if not department:
-        raise ValueError("Department not found")
+        raise HTTPException(status_code=404,detail='Department not found')
 
     return department
 
@@ -93,41 +94,43 @@ def update_department(
     )
 
     if not department:
-        raise ValueError("Department not found")
+        raise HTTPException(status_code=404,detail='department not found')
 
+    
     # update name
     if department_data.name:
-
+        department_data_name = department_data.name.upper()
         existing_name = (
             db.query(Department)
             .filter(
-                Department.name == department_data.name,
+                Department.name == department_data_name,
                 Department.id != department_id
             )
             .first()
         )
 
         if existing_name:
-            raise ValueError("Department name already exists")
+            raise HTTPException(status_code=409,detail="Department name already exists")
 
-        department.name = department_data.name
+        department.name = department_data.name.upper() #making the upper case
 
+    
     # update uid
     if department_data.dept_uid:
-
+        department_data_uid = department_data.dept_uid.upper()
         existing_uid = (
             db.query(Department)
             .filter(
-                Department.dept_uid == department_data.dept_uid,
+                Department.dept_uid == department_data_uid,
                 Department.id != department_id
             )
             .first()
         )
 
         if existing_uid:
-            raise ValueError("Department UID already exists")
+            raise HTTPException(status_code=409,detail="Department UID already exists")
 
-        department.dept_uid = department_data.dept_uid
+        department.dept_uid = department_data.dept_uid.upper() #making the uid uppercase
 
     db.commit()
     db.refresh(department)
@@ -142,7 +145,7 @@ def delete_department(db: Session, department_id: int):
     department = db.query(Department).filter(Department.id == department_id).first()
     
     if not department:
-        raise ValueError("Department not found")
+        raise HTTPException(status_code=404,detail="Department not found")
 
     # 1. Handle HOD and their User record
     if department.hod:
