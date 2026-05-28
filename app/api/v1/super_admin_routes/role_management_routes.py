@@ -1,17 +1,18 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-
 from app.database import get_db
-from app.models.models import Admin
-from app.core.dependencies import (
-    require_roles,
-    require_super_admin,
-    get_current_admin,
-    get_current_student,
-    get_current_user,
-)
 from pydantic import EmailStr
+#====================
+# Models
+#====================
+from app.models.models import Admin
+#====================
+from app.core.dependencies import require_super_admin
+
+#=========================
+# Service level Schema
+#=========================
 from app.services.super_admin_services.role_mangement import (
     create_admin_service,
     get_all_admin_service,
@@ -24,11 +25,15 @@ from app.services.super_admin_services.role_mangement import (
 )
 from app.schemas.services_schemas.super_admin_schemas.role_management import (
     AdminCreate,
-    AdminResponse
+    AdminResponse,
+    StudentCreateRequest,
+    StudentUpdateRequest,
+    StudentResponse
 )
-from app.schemas.services_schemas.student_schema import StudentCreateRequest,StudentUpdateRequest
 from app.schemas.response_schemas.base_response import UserBasicInfo
-from app.schemas.response_schemas.person_responses import StudentResponse
+#===========================================
+
+
 router = APIRouter(prefix="/roles", tags=["roles"])
 
 @router.post("/admin/create",response_model=AdminResponse)

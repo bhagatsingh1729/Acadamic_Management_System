@@ -20,9 +20,9 @@ from app.core.exception_handler import register_exception_handlers
 from app.middleware.custom_middleware import TimeMiddleware
 
 # ── Routes ────────────────────────────────────────────────────
-from app.api.v1.auth_routes import router as auth_router
-from app.api.v1.user_routes import router as user_router
-from app.api.v1.student_routes import router as student_router
+from app.api.v1.auth_routes.auth_routes import router as auth_router
+from app.api.v1.user_routes.user_routes import router as user_router
+from app.api.v1.student_routes.student_routes import router as student_router
 from app.api.v1.super_admin_routes.branch_routes import router as branch_router
 from app.api.v1.super_admin_routes.department_routes import router as department_router
 from app.api.v1.super_admin_routes.role_management_routes import router as role_management_router

@@ -50,7 +50,7 @@ from app.core.dependencies import (
     get_current_student,
     get_current_user,
 )
-from app.schemas.services_schemas.student_schema import (
+from app.schemas.services_schemas.student_schemas.student_schema import (
     StudentCreateRequest,
     StudentUpdateRequest,
 )

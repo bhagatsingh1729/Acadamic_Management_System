@@ -1,35 +1,54 @@
+#===========General imports============================
+from pydantic import EmailStr
+from fastapi import HTTPException
+from sqlalchemy.orm import Session
+#===================================================
+# Service level Schemas import
+#===================================================
 from app.schemas.services_schemas.super_admin_schemas.role_management import (
     AdminCreate,
     AdminUpdate,
-    AdminResponse
+    AdminResponse,
+    StudentCreateRequest,
+    StudentUpdateRequest
 )
-from pydantic import EmailStr
-from fastapi import HTTPException
-from app.crud.fundamental_crud.admin_crud import (
-    create_admin
-)
-from app.crud.fundamental_crud.student_crud import (
-    create_student
-)
-from app.core.security import hash_password
-from app.models.models import Branch,Admin,User,Student
-from sqlalchemy.orm import Session
-from app.schemas.fundamental_schemas import admin_schema
-from app.schemas.response_schemas.person_responses import StudentResponse
-from app.schemas.fundamental_schemas.student_schema import (
-    StudentCreate
-)
-from app.schemas.services_schemas.student_schema import (
+from app.schemas.services_schemas.student_schemas.student_schema import (
     StudentCreateRequest,
     StudentUpdateRequest
 )
 from app.schemas.services_schemas.super_admin_schemas.role_management import (
     AdminResponse
 )
+#=============================================
+# Fundamental schemas import
+#=============================================
+from app.crud.fundamental_crud.admin_crud import (
+    create_admin
+)
+from app.crud.fundamental_crud.student_crud import (
+    create_student
+)
+from app.schemas.fundamental_schemas.student_schema import (
+    StudentCreate
+)
 from app.crud.fundamental_crud.admin_crud import (
     create_admin,
     update_admin
 )
+from app.schemas.fundamental_schemas import admin_schema
+#==========================================================
+from app.core.security import hash_password
+#==========================================================
+# Models import
+#==========================================================
+from app.models.models import Branch,Admin,User,Student
+
+#==========================================================
+
+
+
+
+
 def create_admin_service(data:AdminCreate,db:Session):
 
     branch_uid = data.branch_uid.upper()

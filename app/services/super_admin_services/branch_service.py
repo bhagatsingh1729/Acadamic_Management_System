@@ -46,3 +46,4 @@ def delete_branch_service(branch_uid:str,db:Session):
         raise HTTPException(status_code=404,detail='branch do not exist')
     return delete_branch(branch_id=branch_db.id,db=db)
 
+

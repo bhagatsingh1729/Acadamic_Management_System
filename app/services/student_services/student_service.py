@@ -41,7 +41,7 @@ from app.crud.fundamental_crud.student_crud import (
 )
 from app.crud.fundamental_crud.branch_crud import get_branch_by_uid
 from app.schemas.fundamental_schemas.student_schema import StudentCreate, StudentUpdate
-from app.schemas.services_schemas.student_schema import (
+from app.schemas.services_schemas.student_schemas.student_schema import (
     StudentCreateRequest,
     StudentUpdateRequest,
 )

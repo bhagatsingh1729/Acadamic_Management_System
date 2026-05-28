@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, field_validator,ConfigDict
+from pydantic import BaseModel, EmailStr, field_validator,ConfigDict,Field
 from typing import Optional
 from app.models.models import User
 from app.schemas.response_schemas.base_response import UserBasicInfo
@@ -53,5 +53,64 @@ class AdminResponse(BaseModel):
     user_id: int
     branch_id: int
 
-    user:UserBasicInfo
+    user:UserBasicInfo 
+    model_config = ConfigDict(from_attributes=True)
+
+
+#===============================
+# Student Schemas
+#===============================
+
+class StudentCreateRequest(BaseModel):
+    """
+    What the admin sends when creating a student.
+    Uses branch_uid (human-friendly) instead of branch_id (DB int).
+    The service resolves branch_uid to branch_id internally.
+    """
+    # User fields
+    name: str
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+
+    # Student-specific fields
+    usn: str
+    semester: int = Field(..., ge=1, le=8)
+    batch: str                      # e.g. "2023-27"
+    section: str = "A"              # e.g. "A", "B", "C"
+
+    # Human-friendly identifier — NOT the DB integer id
+    branch_uid: str                 # e.g. "CSE", "ECE"
+
+    # Optional personal info
+    phone_no: Optional[str] = None
+    dob: Optional[str] = None
+    address: Optional[str] = None
+
+
+class StudentUpdateRequest(BaseModel):
+    """
+    What admin sends when updating a student.
+    Only includes fields that are safe to update.
+    """
+    semester: Optional[int] = Field(None, ge=1, le=8)
+    batch: Optional[str] = None
+    section: Optional[str] = None
+    phone_no: Optional[str] = None
+    dob: Optional[str] = None
+    address: Optional[str] = None
+
+# =============================================================
+# STUDENT RESPONSE
+# =============================================================
+class StudentResponse(BaseModel):
+    id: int
+    user_id: int
+    usn: str
+    semester: int
+    batch: str
+    section: str
+    branch_id: int
+    #branch_uid:str # Adding this get branch_uid
+    user: UserBasicInfo
+
     model_config = ConfigDict(from_attributes=True)
