@@ -32,7 +32,7 @@ class DepartmentResponse(BaseModel):
     id: int
     name: str
     dept_uid: str
-
+    
     model_config = ConfigDict(from_attributes=True)
 
     """

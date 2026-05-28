@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, field_validator,ConfigDict,Field
 from typing import Optional
-from app.models.models import User
+from app.models.models import User,Branch
 from app.schemas.response_schemas.base_response import UserBasicInfo
 # =========================
 # CREATE ADMIN
@@ -95,6 +95,7 @@ class StudentUpdateRequest(BaseModel):
     semester: Optional[int] = Field(None, ge=1, le=8)
     batch: Optional[str] = None
     section: Optional[str] = None
+    branch_uid:Optional[str] = None
     phone_no: Optional[str] = None
     dob: Optional[str] = None
     address: Optional[str] = None
@@ -111,6 +112,7 @@ class StudentResponse(BaseModel):
     section: str
     branch_id: int
     #branch_uid:str # Adding this get branch_uid
+    #branch:Branch
     user: UserBasicInfo
 
     model_config = ConfigDict(from_attributes=True)
