@@ -89,6 +89,7 @@ class StudentResponse(BaseModel):
     batch: str
     section: str
     branch_id: int
+    #branch_uid:str # Adding this get branch_uid
     user: UserBasicInfo
 
     model_config = ConfigDict(from_attributes=True)

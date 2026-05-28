@@ -1,11 +1,10 @@
 from typing import Optional
 
-from pydantic import BaseModel, Field
-
+from pydantic import BaseModel, Field, EmailStr,ConfigDict
 
 class StudentCreate(BaseModel):
     name: str
-    email: str
+    email: EmailStr
     password: str = Field(..., min_length=8, max_length=64)
 
     usn: str
@@ -16,6 +15,7 @@ class StudentCreate(BaseModel):
     section: str 
 
     branch_id: int 
+    #branch_uid:str #adding this get branch uid
 
     phone_no: Optional[str] = None
     dob: Optional[str] = None
@@ -46,5 +46,4 @@ class StudentResponse(BaseModel):
 
     branch_id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True) 

@@ -1,14 +1,23 @@
-from app.schemas.fundamental_schemas.branch_schema import (
-    BranchCreate,
-    BranchUpdate,
-    BranchResponse
-)
+from pydantic import BaseModel
+from datetime import datetime
 
-class BranchCreate(BranchCreate):
-    pass
 
-class BranchUpdate(BranchUpdate):
-    pass
+class BranchCreate(BaseModel):
+    name: str
+    branch_uid: str
 
-class BranchResponse(BranchResponse):
-    pass
+
+class BranchUpdate(BaseModel):
+    name: str | None = None
+    branch_uid: str | None = None
+
+
+class BranchResponse(BaseModel):
+    id: int
+    name: str
+    branch_uid: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

@@ -1,6 +1,6 @@
 from typing import Optional, Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel,EmailStr
 
 
 class UserProfileSchema(BaseModel):
@@ -12,7 +12,7 @@ class CurrentUserResponseSchema(BaseModel):
 
     id: int
     name: str
-    email: str
+    email: EmailStr
     role: str
 
     profile: UserProfileSchema

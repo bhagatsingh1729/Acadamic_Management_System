@@ -36,7 +36,8 @@ class UserBasicInfo(BaseModel):
     """
     id: int
     name: str
-    email: EmailStr
+    email: EmailStr # chnages this to EmailStr.and make sure you implement this everywhere
+    role:str
     phone_no: Optional[str] = None
     dob: Optional[str] = None
     address: Optional[str] = None
