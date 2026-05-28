@@ -3,6 +3,7 @@ from pydantic import EmailStr
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
+from app.core.security import hash_password
 #===================================================
 # Service level Schemas import
 #===================================================
@@ -11,7 +12,9 @@ from app.schemas.services_schemas.super_admin_schemas.role_management import (
     AdminUpdate,
     AdminResponse,
     StudentCreateRequest,
-    StudentUpdateRequest
+    StudentUpdateRequest,
+    FacultyCreateRequest,
+    FacultyUpdateRequest
 )
 from app.schemas.services_schemas.student_schemas.student_schema import (
     StudentCreateRequest,
@@ -30,6 +33,11 @@ from app.crud.fundamental_crud.admin_crud import (
     create_admin,
     update_admin
 )
+from app.crud.fundamental_crud.faculty_crud import (
+    create_faculty,
+    update_faculty,
+    delete_faculty
+)
 from app.crud.fundamental_crud.student_crud import (
     create_student,
     get_all_students,
@@ -38,7 +46,7 @@ from app.crud.fundamental_crud.student_crud import (
     get_students_by_cohort,
     get_students_by_branch,
     update_student,
-    delete_student
+    delete_student,
 )
 #=====================================================
 # Fundamental schema imports
@@ -48,13 +56,20 @@ from app.schemas.fundamental_schemas.student_schema import (
     StudentUpdate
 )
 from app.schemas.fundamental_schemas import admin_schema
-from app.schemas.fundamental_schemas import admin_schema
+from app.schemas.fundamental_schemas import faculty_schema
 #==========================================================
 from app.core.security import hash_password
 #==========================================================
 # Models import
 #==========================================================
-from app.models.models import Branch,Admin,User,Student
+from app.models.models import (
+    Branch,
+    Admin,
+    User,
+    Student,
+    Department,
+    Faculty
+)
 
 #==========================================================
 
@@ -137,6 +152,72 @@ def get_user_via_role(role:str,db:Session):
     if not db_users:
         raise HTTPException(status_code=404,detail='not found')
     return db_users
+
+#===========================================
+# Faculty role management
+#===========================================
+
+def create_faculty_service(data:FacultyCreateRequest,db:Session):
+    dept_uid = data.dept_uid.upper()
+    dept = db.query(Department).filter(Department.dept_uid == dept_uid).first()
+    if not dept:
+        raise HTTPException(status_code=404,detail='Department not found')
+    
+    data_payload = faculty_schema.FacultyCreate(
+        name=data.name,
+        email=data.email,
+        password=data.password,
+        employee_id=data.employee_id,
+        dept_id=dept.id,
+        phone_no=data.phone_no,
+        dob=data.dob,
+        address=data.address
+    )
+
+    return create_faculty(db=db,faculty_data=data_payload)
+
+def get_all_faculty_service(db:Session):
+    db_faculty = db.query(Faculty).limit(50).all()
+    if not db_faculty:
+        raise HTTPException(status_code=404,detail='no faculty accounts')
+    return db_faculty
+
+def get_faculty_via_emp_id_service(emp_id:str,db:Session):
+    emp_id = emp_id.upper()
+    db_faculty = db.query(Faculty).filter(Faculty.employee_id == emp_id).first()
+    if not db_faculty:
+         raise HTTPException(status_code=404,detail='faculty not found')
+    return db_faculty
+
+def update_faculty_service(emp_id:str,data:FacultyUpdateRequest,db:Session):
+    dept_uid = data.dept_uid.upper()
+    dept_db = db.query(Department).filter(Department.dept_uid == dept_uid).first()
+    if not dept_db:
+        raise HTTPException(status_code=404,detail='Department not found')
+    faculty_db = get_faculty_via_emp_id_service(emp_id=emp_id,db=db)
+    if not faculty_db:
+        raise HTTPException(status_code=404,detail='faculty does not exist')
+    
+    faculty_data = faculty_schema.FacultyUpdate(
+        name=data.name,
+        phone_no=data.phone_no,
+        dob=data.dob,
+        address=data.address,
+        dept_id=dept_db.id
+    )
+
+    return update_faculty(db=db,faculty_id=faculty_db.id,faculty_data=faculty_data)
+
+def delete_faculty_via_emp_id_service(emp_id:str,db:Session):
+
+    try:
+        faculty_db = get_faculty_via_emp_id_service(emp_id=emp_id,db=db)
+        if not faculty_db:
+            raise HTTPException(status_code=404,detail='faculty does not exist')
+        return delete_faculty(db=db,faculty_id=faculty_db.id)
+    except Exception as e:
+        raise HTTPException(status_code=400,detail=f"exception {str(e)}")
+
 
 #--------------------------------
 # Student role management
@@ -237,3 +318,24 @@ def delete_student_service(
         raise HTTPException(status_code=404,detail='student not found')
 
     return delete_student(db, student.id)
+
+#============================================================
+# User
+#============================================================
+
+#change user password
+def change_user_password_service(email: EmailStr, new_password: str, db: Session):
+    # Fetch user
+    user_db = get_user_via_email_service(email=email, db=db)
+    if not user_db:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Hash and update password
+    user_db.password = hash_password(new_password)
+
+    # Commit changes
+    db.add(user_db)
+    db.commit()
+    db.refresh(user_db)
+
+    return {"message": "Password updated successfully", "user_id": user_db.id}

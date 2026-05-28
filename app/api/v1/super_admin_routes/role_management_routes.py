@@ -20,12 +20,20 @@ from app.services.super_admin_services.role_management import (
     get_all_user_service,
     get_user_via_role,
     update_admin_service,
+    #Faculty
+    create_faculty_service,
+    update_faculty_service,
+    delete_faculty_via_emp_id_service,
+    get_all_faculty_service,
+    get_faculty_via_emp_id_service,
     #student
     create_student_service,
     get_all_students_service,
     update_student_service,
     delete_student_service,
-    get_student_by_usn_service
+    get_student_by_usn_service,
+    #user
+    change_user_password_service
 )
 from app.schemas.services_schemas.super_admin_schemas.role_management import (
     AdminCreate,
@@ -33,7 +41,10 @@ from app.schemas.services_schemas.super_admin_schemas.role_management import (
     AdminResponse,
     StudentCreateRequest,
     StudentUpdateRequest,
-    StudentResponse
+    StudentResponse,
+    FacultyCreateRequest,
+    FacultyUpdateRequest,
+    FacultyResponse
 )
 from app.schemas.response_schemas.base_response import UserBasicInfo
 #===========================================
@@ -71,6 +82,57 @@ def get_all_users_route(db:Session=Depends(get_db),current_user=Depends(require_
 @router.get("/users/role/{role}",response_model=list[UserBasicInfo])
 def get_all_user_via_role(role:str,db:Session=Depends(get_db),current_user=Depends(require_super_admin)):
     return get_user_via_role(role,db)
+
+@router.patch("/users/update/password/{email}")
+def change_user_password_route(email:str,new_password:str,db:Session=Depends(get_db),curren_user=Depends(require_super_admin)):
+    return change_user_password_service(email=email,new_password=new_password,db=db)
+
+#======================================
+# Faculty role management
+#======================================
+
+@router.post("/faculty/create", response_model=FacultyResponse)
+def create_faculty_route(
+    data: FacultyCreateRequest,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_super_admin)
+):
+    return create_faculty_service(db=db, data=data)
+
+@router.get("/faculties", response_model=list[FacultyResponse])
+def get_all_faculty_route(
+    db: Session = Depends(get_db),
+    current_user = Depends(require_super_admin)
+):
+    return get_all_faculty_service(db)
+
+@router.get("/faculty/{emp_id}", response_model=FacultyResponse)
+def get_faculty_via_emp_id_route(
+    emp_id: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_super_admin)
+):
+    return get_faculty_via_emp_id_service(emp_id=emp_id, db=db)
+
+@router.patch("/faculty/update/{emp_id}", response_model=FacultyResponse)
+def update_faculty_via_emp_id_route(
+    emp_id: str,
+    data: FacultyUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_super_admin)
+):
+    return update_faculty_service(emp_id, data, db)
+
+@router.delete("/faculty/delete/{emp_id}")
+def delete_faculty_via_emp_id_route(
+    emp_id: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_super_admin)
+):
+    return delete_faculty_via_emp_id_service(emp_id=emp_id, db=db)
+
+
+
 
 #-----------------------------------------
 # Student role management
