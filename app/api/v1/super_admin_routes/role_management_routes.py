@@ -13,7 +13,7 @@ from app.core.dependencies import require_super_admin
 #=========================
 # Service level Schema
 #=========================
-from app.services.super_admin_services.role_mangement import (
+from app.services.super_admin_services.role_management import (
     create_admin_service,
     get_all_admin_service,
     get_user_via_email_service,
