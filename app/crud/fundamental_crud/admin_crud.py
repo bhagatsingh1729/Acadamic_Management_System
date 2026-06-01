@@ -242,7 +242,7 @@ def delete_admin(
     # because of ON DELETE CASCADE
     # --------------------------------
     db.delete(admin)
-
+    db.delete(admin.user) #adding this to ensure user is deleted, even if cascade fails for some reason
     db.commit()
 
     return {
