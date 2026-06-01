@@ -128,23 +128,32 @@ def update_admin_service(data: AdminUpdate, email: EmailStr, db: Session):
     return update_admin(db, db_admin.id, admin_data=admin_data)
 
 # adding the deletion option 
+
 def delete_admin_service(email: EmailStr, db: Session):
-    db_user = db.query(User).filter(User.email == email).first()
-    if not db_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    try:
+        db_user = db.query(User).filter(User.email == email).first()
+        if not db_user:
+            raise HTTPException(status_code=404, detail="User not found")
 
-    if db_user.role != "admin":
-        raise HTTPException(status_code=400, detail="User is not an admin")
+        if db_user.role != "admin":
+            raise HTTPException(status_code=400, detail="User is not an admin")
 
-    db_admin = db.query(Admin).filter(Admin.user_id == db_user.id).first()
-    if not db_admin:
-        raise HTTPException(status_code=404, detail="Admin profile not found")
+        db_admin = db.query(Admin).filter(Admin.user_id == db_user.id).first()
+        if not db_admin:
+            raise HTTPException(status_code=404, detail="Admin profile not found")
 
-    # Delete the admin profile first
-    db.delete(db_admin)
-    db.delete(db_user)  # Also delete the associated user account
-    db.commit()
+        # Delete both records
+        db.delete(db_admin)
+        db.delete(db_user)
 
-    return {
-        "message": "admin deleted successfully"
-    }
+        db.commit()
+        return {"message": "Admin deleted successfully"}
+
+    except HTTPException:
+        # rollback and re-raise known errors
+        db.rollback()
+        raise
+    except Exception as e:
+        # rollback and raise generic error
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")

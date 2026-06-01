@@ -50,11 +50,11 @@ from app.core.dependencies import (
     get_current_student,
     get_current_user,
 )
-from app.schemas.services_schemas.student_schemas.student_schema import (
+from app.schemas.services_schemas.role_management_schemas.student_schemas import (
     StudentCreateRequest,
     StudentUpdateRequest,
 )
-from app.schemas.response_schemas.person_responses import StudentResponse
+from app.schemas.services_schemas.role_management_schemas.student_schemas import StudentResponse
 from app.services.student_services.student_service import (
     create_student_service,
     get_all_students_service,
@@ -186,45 +186,33 @@ def get_cohort(
         enforced_branch_id=branch_id
     )
 
-
 # =============================================================
-# GET /students/{usn} — Get single student by USN
+# GET /students/{usn}
+# ⚠️ All static paths (/me, /cohort) must be above this.
 # =============================================================
-@router.get(
-    "/{usn}",
-    response_model=StudentResponse,
-    summary="Get student by USN [admin (own branch) | super_admin | faculty | hod]"
-)
+@router.get("/{usn}", response_model=StudentResponse, summary="Get student by USN [admin | super_admin | faculty | hod]")
 def get_student(
     usn: str,
     db: Session = Depends(get_db),
     current_user=Depends(require_roles("admin", "super_admin", "faculty", "hod"))
 ):
-    # Admin can only view students from their own branch
     if current_user.role == "admin":
         admin: Admin = db.query(Admin).filter(
             Admin.user_id == current_user.id
         ).first()
-        return get_student_by_usn_service(
-            db,
-            usn,
-            enforced_branch_id=admin.branch_id
-        )
+        return get_student_by_usn_service(db, usn, enforced_branch_id=admin.branch_id)
 
-    # super_admin, faculty, hod → no branch restriction
     return get_student_by_usn_service(db, usn, enforced_branch_id=None)
 
 
 # =============================================================
-# PUT /students/{id} — Update student
+# PATCH /students/{usn}
+# ⚠️ Removed /update/ prefix — it would collide with GET /{usn}
+#    treating "update" as a USN string.
 # =============================================================
-@router.put(
-    "/{student_id}",
-    response_model=StudentResponse,
-    summary="Update student [admin (own branch) | super_admin]"
-)
+@router.patch("/{usn}", response_model=StudentResponse, summary="Update student [admin | super_admin]")
 def update_student(
-    student_id: int,
+    usn: str,
     data: StudentUpdateRequest,
     db: Session = Depends(get_db),
     current_user=Depends(require_roles("admin", "super_admin"))
@@ -233,25 +221,18 @@ def update_student(
         admin: Admin = db.query(Admin).filter(
             Admin.user_id == current_user.id
         ).first()
-        return update_student_service(
-            db,
-            student_id,
-            data,
-            enforced_branch_id=admin.branch_id
-        )
+        return update_student_service(db, usn, data, enforced_branch_id=admin.branch_id)
 
-    return update_student_service(db, student_id, data, enforced_branch_id=None)
+    return update_student_service(db, usn, data, enforced_branch_id=None)
 
 
 # =============================================================
-# DELETE /students/{id} — Delete student
+# DELETE /students/{usn}
+# ⚠️ Same — removed /delete/ prefix for the same reason.
 # =============================================================
-@router.delete(
-    "/{student_id}",
-    summary="Delete student [admin (own branch) | super_admin]"
-)
+@router.delete("/{usn}", summary="Delete student [admin | super_admin]")
 def delete_student(
-    student_id: int,
+    usn: str,
     db: Session = Depends(get_db),
     current_user=Depends(require_roles("admin", "super_admin"))
 ):
@@ -259,10 +240,6 @@ def delete_student(
         admin: Admin = db.query(Admin).filter(
             Admin.user_id == current_user.id
         ).first()
-        return delete_student_service(
-            db,
-            student_id,
-            enforced_branch_id=admin.branch_id
-        )
+        return delete_student_service(db, usn, enforced_branch_id=admin.branch_id)
 
-    return delete_student_service(db, student_id, enforced_branch_id=None)
+    return delete_student_service(db, usn, enforced_branch_id=None)

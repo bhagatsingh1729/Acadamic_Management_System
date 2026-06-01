@@ -193,89 +193,51 @@ def get_students_by_cohort(
     )
 
 
-def update_student(
-    db: Session,
-    student_id: int,
-    data: StudentUpdate
-):
-
-    student = (
-        db.query(Student)
-        .filter(Student.id == student_id)
-        .first()
-    )
-
+def update_student(db: Session, student_id: int, data: StudentUpdate):
+    student = db.query(Student).filter(Student.id == student_id).first()
     if not student:
-        raise HTTPException(
-            status_code=404,
-            detail="student not found"
-        )
+        raise HTTPException(status_code=404, detail="student not found")
 
     if data.branch_id:
-
-        branch = (
-            db.query(Branch)
-            .filter(Branch.id == data.branch_id)
-            .first()
-        )
-
+        branch = db.query(Branch).filter(Branch.id == data.branch_id).first()
         if not branch:
-            raise HTTPException(
-                status_code=404,
-                detail="branch not found"
-            )
-    """
+            raise HTTPException(status_code=404, detail="branch not found")
+
     update_data = data.model_dump(exclude_unset=True)
 
-    for key, value in update_data.items():
-        setattr(student, key, value)
-    """
-    # to make sure section and usn is uppercase
-    update_data = data.model_dump(exclude_unset=True)
+    # Normalize casing
+    for field in ["section", "usn", "batch"]:
+        if field in update_data and update_data[field] is not None:
+            update_data[field] = update_data[field].upper()
 
-    # Force uppercase for specific fields if they exist in the update
-    if 'section' in update_data:
-        update_data['section'] = update_data['section'].upper()
-    if 'usn' in update_data:
-        update_data['usn'] = update_data['usn'].upper()
+    # ─── Split fields between Student and User tables ─────────
+    student_fields = {"semester", "batch", "section", "branch_id"}
+    user_fields    = {"phone_no", "dob", "address"}
 
     for key, value in update_data.items():
-        setattr(student, key, value)
-        
+        if key in student_fields:
+            setattr(student, key, value)       # → updates student table
+        elif key in user_fields and student.user:
+            setattr(student.user, key, value)  # → updates user table
+
     db.commit()
     db.refresh(student)
-
     return student
 
 
 def delete_student(db: Session, student_id: int):
-
-    student = (
-        db.query(Student)
-        .filter(Student.id == student_id)
-        .first()
-    )
-
+    student = db.query(Student).filter(Student.id == student_id).first()
     if not student:
-        raise HTTPException(
-            status_code=404,
-            detail="student not found"
-        )
+        raise HTTPException(status_code=404, detail="student not found")
 
-    # Deleting the student enrollment related data
-    db.query(StudentSubject).filter(StudentSubject.student_id == student_id).delete(synchronize_session=False)
-    
+    db.query(StudentSubject).filter(
+        StudentSubject.student_id == student_id
+    ).delete(synchronize_session=False)
+
     if student.user:
-        user_to_delete = student.user
-        db.delete(user_to_delete)#adding this line so that when a student is getting deleted, their associated user record is also deleted
-
+        db.delete(student.user)
 
     db.delete(student)
-    
     db.commit()
 
-
-
-    return {
-        "message": "student deleted successfully"
-    }
+    return {"message": "student deleted successfully"}

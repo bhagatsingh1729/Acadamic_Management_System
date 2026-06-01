@@ -41,10 +41,11 @@ from app.crud.fundamental_crud.student_crud import (
 )
 from app.crud.fundamental_crud.branch_crud import get_branch_by_uid
 from app.schemas.fundamental_schemas.student_schema import StudentCreate, StudentUpdate
-from app.schemas.services_schemas.student_schemas.student_schema import (
+from app.schemas.services_schemas.role_management_schemas.student_schemas import (
     StudentCreateRequest,
-    StudentUpdateRequest,
+    StudentUpdateRequest
 )
+from app.models.models import Branch
 
 
 # =============================================================
@@ -156,19 +157,18 @@ def get_students_by_cohort_service(
 
 
 # =============================================================
-# UPDATE STUDENT
+# UPDATE STUDENT  ← THIS IS WHERE THE FIX LIVES
 # =============================================================
 def update_student_service(
     db: Session,
-    student_id: int,
+    usn: str,
     data: StudentUpdateRequest,
     enforced_branch_id: Optional[int] = None
 ):
-    # First check student exists and get their record
-    student = get_student_by_id(db, student_id)
-    # ↑ raises HTTPException(404) if not found
+    # Step 1: Fetch student by USN (raises 404 if not found)
+    student = get_student_by_usn(db, usn)
 
-    # ─── Ownership check ──────────────────────────────────────
+    # Step 2: Ownership check
     if enforced_branch_id is not None:
         if student.branch_id != enforced_branch_id:
             raise HTTPException(
@@ -176,17 +176,45 @@ def update_student_service(
                 detail="You can only update students from your own branch"
             )
 
-    # Build the CRUD-level update schema
-    update_data = StudentUpdate(
-        semester=data.semester,
-        batch=data.batch,
-        section=data.section,
-        phone_no=data.phone_no,
-        dob=data.dob,
-        address=data.address
-    )
+    # Step 3: Extract ONLY the fields the client actually sent
+    # ─────────────────────────────────────────────────────────
+    # This is the KEY fix.
+    # model_dump(exclude_unset=True) gives you a dict with only
+    # the keys the client included in the request body.
+    #
+    # Client sends: { "semester": 5 }
+    # raw = { "semester": 5 }          ← only this, nothing else
+    #
+    # Old broken code was doing StudentUpdate(semester=5, batch=None, ...)
+    # which made Pydantic think batch was SET to None.
+    # Now we only pass what was actually sent.
+    # ─────────────────────────────────────────────────────────
+    raw = data.model_dump(exclude_unset=True)
 
-    return update_student(db, student_id, update_data)
+    # Step 4: Resolve branch_uid → branch_id if client sent it
+    # ─────────────────────────────────────────────────────────
+    # We pop branch_uid out (CRUD schema doesn't know about it)
+    # and replace it with the resolved branch_id integer.
+    # If client didn't send branch_uid, we skip this entirely.
+    # ─────────────────────────────────────────────────────────
+    if "branch_uid" in raw:
+        branch_uid = raw.pop("branch_uid").upper()
+        branch_db = db.query(Branch).filter(
+            Branch.branch_uid == branch_uid
+        ).first()
+        if not branch_db:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Branch '{branch_uid}' not found"
+            )
+        raw["branch_id"] = branch_db.id
+
+    # Step 5: Build StudentUpdate with only the resolved fields
+    # Pydantic will correctly mark everything else as unset
+    update_data = StudentUpdate(**raw)
+
+    # Step 6: Call CRUD
+    return update_student(db, student.id, update_data)
 
 
 # =============================================================
@@ -194,12 +222,11 @@ def update_student_service(
 # =============================================================
 def delete_student_service(
     db: Session,
-    student_id: int,
+    usn: str,
     enforced_branch_id: Optional[int] = None
 ):
-    student = get_student_by_id(db, student_id)
+    student = get_student_by_usn(db, usn)
 
-    # ─── Ownership check ──────────────────────────────────────
     if enforced_branch_id is not None:
         if student.branch_id != enforced_branch_id:
             raise HTTPException(
@@ -207,4 +234,4 @@ def delete_student_service(
                 detail="You can only delete students from your own branch"
             )
 
-    return delete_student(db, student_id)
+    return delete_student(db, student.id)
