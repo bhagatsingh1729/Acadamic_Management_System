@@ -14,70 +14,15 @@ from app.schemas.fundamental_schemas.branch_subject_schema import BranchSubjectC
 # =========================
 def assign_subject_to_branch(
     db: Session,
-    data: BranchSubjectCreate
+    branch_id:int,
+    subject_id:int
 ):
-
-    # -------------------------
-    # validate branch
-    # -------------------------
-    branch = (
-        db.query(Branch)
-        .filter(Branch.id == data.branch_id)
-        .first()
-    )
-
-    if not branch:
-        raise HTTPException(
-            status_code=404,
-            detail="branch not found"
-        )
-
-    # -------------------------
-    # validate subject
-    # -------------------------
-    subject = (
-        db.query(Subject)
-        .filter(Subject.id == data.subject_id)
-        .first()
-    )
-
-    if not subject:
-        raise HTTPException(
-            status_code=404,
-            detail="subject not found"
-        )
-
-    # -------------------------
-    # check duplicate mapping
-    # -------------------------
-    existing_mapping = (
-        db.query(BranchSubject)
-        .filter(
-            BranchSubject.branch_id == data.branch_id,
-            BranchSubject.subject_id == data.subject_id
-        )
-        .first()
-    )
-
-    if existing_mapping:
-        raise HTTPException(
-            status_code=400,
-            detail="subject already assigned to branch"
-        )
-
-    # -------------------------
-    # create mapping
-    # -------------------------
-    new_mapping = BranchSubject(
-        branch_id=data.branch_id,
-        subject_id=data.subject_id
-    )
-
+    # Check duplicate
+    if db.query(BranchSubject).filter_by(branch_id=branch_id, subject_id=subject_id).first():
+        raise HTTPException(status_code=400, detail="Already assigned")
+    
+    new_mapping = BranchSubject(branch_id=branch_id, subject_id=subject_id)
     db.add(new_mapping)
-
-    db.commit()
-    db.refresh(new_mapping)
-
     return new_mapping
 
 
