@@ -41,8 +41,8 @@ def create_subject(
         raise ValueError("Subject code already exists")
 
     new_subject = Subject(
-        name=subject_data.name,
-        code=subject_data.code,
+        name=subject_data.name.upper(),
+        code=subject_data.code.upper(),
         semester=subject_data.semester,
         credits=subject_data.credits
     )
