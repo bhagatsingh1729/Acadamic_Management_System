@@ -65,30 +65,27 @@ def update_branch(
     branch_id: int,
     branch_data: BranchUpdate
 ):
-
-    branch = (
-        db.query(Branch)
-        .filter(Branch.id == branch_id)
-        .first()
-    )
-
+    branch = db.query(Branch).filter(Branch.id == branch_id).first()
     if not branch:
-        raise HTTPException(status_code=404,detail='branch not found')
+        raise HTTPException(status_code=404, detail="branch not found")
 
     update_data = branch_data.model_dump(exclude_unset=True)
 
-    # enforcing uppercase to branch_uid
-    if "branch_uid" in update_data:
-        update_data["branch_uid"] = branch_data.branch_uid.upper()
-    if "name" in update_data:
-        update_data["name"] = branch_data.branch_uid.upper()
+    # enforce uppercase only if branch_uid is provided
+    if "branch_uid" in update_data and update_data["branch_uid"] is not None:
+        update_data["branch_uid"] = update_data["branch_uid"].upper()
+
+    # normalize name only if provided
+    if "name" in update_data and update_data["name"] is not None:
+        update_data["name"] = update_data["name"].strip()
+
     for key, value in update_data.items():
         setattr(branch, key, value)
 
     db.commit()
     db.refresh(branch)
-
     return branch
+
 
 
 def delete_branch(db: Session, branch_id: int):
