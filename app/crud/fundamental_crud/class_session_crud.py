@@ -92,8 +92,8 @@ def create_class_session(db: Session, session_data: ClassSessionCreate):
     )
 
     db.add(new_session)
-    db.commit()
-    db.refresh(new_session)
+    #db.commit()
+    #db.refresh(new_session)
 
     return new_session
 

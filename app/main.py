@@ -31,6 +31,7 @@ from app.api.v1.subject_routes.subject_routes import router as subject_router
 from app.api.v1.subject_routes.branch_subject_routes import router as assign_subject_router
 from app.api.v1.subject_routes.student_subject_routes import router as student_subject_router
 from app.api.v1.subject_routes.faculty_subject_routes import router as faculty_subject_router
+from app.api.v1.class_session_routes.class_session_routes import router as class_session_router
 # ── Create all tables on startup ─────────────────────────────
 Base.metadata.create_all(bind=engine)
 
@@ -61,6 +62,7 @@ app.include_router(subject_router,prefix=API_PREFIX)
 app.include_router(assign_subject_router,prefix=API_PREFIX)
 app.include_router(student_subject_router,prefix=API_PREFIX)
 app.include_router(faculty_subject_router,prefix=API_PREFIX)
+app.include_router(class_session_router,prefix=API_PREFIX)
 # NOTE: Add more routers here as each service is built.
 # Example:
 #   from app.api.v1.faculty_routes import router as faculty_router
