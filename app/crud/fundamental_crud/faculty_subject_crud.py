@@ -78,8 +78,8 @@ def assign_subject_to_faculty(
 
     db.add(new_mapping)
 
-    db.commit()
-    db.refresh(new_mapping)
+    #db.commit()
+    #db.refresh(new_mapping)
 
     return new_mapping
 
