@@ -33,10 +33,11 @@ def assign_subject(
     db: Session = Depends(get_db),
     current_user=Depends(require_roles("admin", "super_admin"))
 ):
+    # Kepping it none so if the current user is not admin we can pass none
     enforced_branch_uid = None
 
     if current_user.role == "admin":
-        admin: Admin = db.query(Admin).filter(
+        admin: Admin = db.query(Admin).filter(# query in admin table to retrieve branch_uid,so that we can assign that to enforced_branch_id
             Admin.user_id == current_user.id
         ).first()
         enforced_branch_uid = admin.branch.branch_uid  # ← admin's own branch_uid

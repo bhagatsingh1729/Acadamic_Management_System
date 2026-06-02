@@ -12,7 +12,8 @@ from app.services.subject_services.subject_services import (
 )
 
 from app.core.dependencies import (
-    require_super_admin
+    require_super_admin,
+    require_roles,
 )
 
 from app.database import get_db
@@ -26,11 +27,11 @@ def create_subject_routes(Subject_data:SubjectCreateRequest,db:Session = Depends
     return create_subject_service(subject_data=Subject_data,db=db)
 
 @router.get("",response_model=list[SubjectResponse])
-def get_all_subjects_route(db:Session=Depends(get_db),current_user=Depends(require_super_admin)):
+def get_all_subjects_route(db:Session=Depends(get_db),current_user=Depends(require_roles("admin","super_admin","faculty","hod"))):
     return get_all_subjects_service(db=db)
 
 @router.get("/{code}",response_model=SubjectResponse)
-def get_subject_via_code_route(code:str,db:Session=Depends(get_db),current_user=Depends(require_super_admin)):
+def get_subject_via_code_route(code:str,db:Session=Depends(get_db),current_user=Depends(require_roles("admin","super_admin","faculty","hod"))):
     return get_subject_via_code_service(code=code,db=db)
 
 @router.patch("/{code}",response_model=SubjectResponse)

@@ -107,9 +107,9 @@ def enroll_student_to_subject(
 
     db.add(enrollment)
 
-    db.commit()
+    #db.commit()
 
-    db.refresh(enrollment)
+    #db.refresh(enrollment)
 
     return enrollment
 
