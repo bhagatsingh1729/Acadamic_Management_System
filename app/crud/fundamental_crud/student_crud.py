@@ -134,7 +134,7 @@ def get_student_by_usn(db: Session, usn: str):
 
 def get_all_students(db: Session):
 
-    return db.query(Student).all()
+    return db.query(Student).limit(100).all()
 
 
 def get_students_by_branch(db: Session, branch_id: int):
@@ -151,6 +151,7 @@ def get_students_by_semester(db: Session, semester: int):
     return (
         db.query(Student)
         .filter(Student.semester == semester)
+        .limit(100)
         .all()
     )
 
@@ -160,6 +161,7 @@ def get_students_by_batch(db: Session, batch: str):
     return (
         db.query(Student)
         .filter(Student.batch == batch)
+        .limit(100)
         .all()
     )
 
@@ -169,6 +171,7 @@ def get_students_by_section(db: Session, section: str):
     return (
         db.query(Student)
         .filter(Student.section == section.upper())
+        .limit(100)
         .all()
     )
 
@@ -189,6 +192,7 @@ def get_students_by_cohort(
             Student.batch == batch,
             Student.section == section.upper()
         )
+        .limit(100)
         .all()
     )
 

@@ -2,9 +2,11 @@ from sqlalchemy.orm import Session
 
 from app.models.models import Attendance, Student, ClassSession
 from app.schemas.fundamental_schemas.attendance_schema import AttendanceCreate
-
+from fastapi import HTTPException
 def create_attendance(db: Session, data: AttendanceCreate):
-
+    """
+    this is basically used to create a attendance row for a student
+    """
     student = (
         db.query(Student)
         .filter(Student.id == data.student_id)
@@ -34,10 +36,10 @@ def create_attendance(db: Session, data: AttendanceCreate):
     )
 
     if existing:
-        raise ValueError("attendance already exists")
+        raise HTTPException(status_code=409,detail='attendance already exist')
 
     if data.status not in [0, 1]:
-        raise ValueError("invalid status")
+        raise HTTPException(status_code=400,detail='invalid status value')
 
     attendance = Attendance(
         student_id=data.student_id,
@@ -52,7 +54,10 @@ def create_attendance(db: Session, data: AttendanceCreate):
     return attendance
 
 def generate_attendance_for_session(db: Session, class_session_id: int):
-
+    """
+    this function is used to generate defaulty attendance marking every one absent by default
+    if faculty wants to mark a student present he/she has to use mark attendance function
+    """
     session = (
         db.query(ClassSession)
         .filter(ClassSession.id == class_session_id)
@@ -119,7 +124,10 @@ def get_student_attendance(db: Session, student_id: int):
     )
 
 def mark_attendance(db: Session, attendance_id: int, status: int):
-
+    """
+    this is to mark attendance by using attendance id
+    basically you are only changing the status as present or absent using 0/1
+    """
     record = (
         db.query(Attendance)
         .filter(Attendance.id == attendance_id)
