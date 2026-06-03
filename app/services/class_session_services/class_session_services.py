@@ -11,13 +11,23 @@ from app.crud.fundamental_crud.class_session_crud import (
 )
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from app.models.models import ClassSession,Faculty,Subject, User
+from app.models.models import ClassSession,Faculty,Subject, User,BranchSubject
 from typing import Optional 
 
-def create_class_session_service(db:Session,data:ClassSessionCreateRequest):
+def create_class_session_service(db:Session,data:ClassSessionCreateRequest,enforce_branch_id:Optional[int] = None):
     data.employee_id = data.employee_id.upper()
     data.code = data.code.upper()
 
+    # For Branch Admin
+    if enforce_branch_id is not None:
+        db_subject = db.query(Subject).filter(Subject.code == data.code).first()
+        if not db_subject:
+            raise HTTPException(status_code=404,detail='subject not found')
+        subject_branch = db.query(BranchSubject).filter(BranchSubject.subject_id == db_subject.id,BranchSubject.branch_id == enforce_branch_id).first()
+        if not subject_branch:
+            raise HTTPException(status_code=400,detail='subject does not exist in the specified branch')
+
+    # For Super Admin
     db_faculty = db.query(Faculty).filter(Faculty.employee_id == data.employee_id).first()
     db_subject = db.query(Subject).filter(Subject.code == data.code).first()
 
@@ -46,46 +56,51 @@ def create_class_session_service(db:Session,data:ClassSessionCreateRequest):
         db.rollback()
         return {'message':str(e)}
 
-def get_all_class_session_service(db:Session):
-    
-    db_class_session = (
+def get_all_class_session_service(db: Session, enforced_branch_id: Optional[int] = None):
+    query = (
         db.query(ClassSession)
         .join(Faculty, ClassSession.faculty_id == Faculty.id)
         .join(User, Faculty.user_id == User.id)
         .join(Subject, ClassSession.subject_id == Subject.id)
-        .with_entities(
-            ClassSession.id.label("session_id"),
-            User.name.label("faculty_name"),
-            Faculty.employee_id.label("employee_id"),
-            Subject.code.label("code"),
-            ClassSession.semester,
-            ClassSession.date,
-            ClassSession.start_time,
-            ClassSession.end_time,
-            ClassSession.batch,
-            ClassSession.section
-        ) 
+    )
+
+    # Only join BranchSubject if we are enforcing a branch
+    if enforced_branch_id:
+        query = query.join(BranchSubject, Subject.id == BranchSubject.subject_id) \
+                     .filter(BranchSubject.branch_id == enforced_branch_id)
+
+    results = query.with_entities(
+        ClassSession.id.label("session_id"),
+        User.name.label("faculty_name"),
+        Faculty.employee_id.label("employee_id"),
+        Subject.code.label("code"),
+        ClassSession.semester,
+        ClassSession.date,
+        ClassSession.start_time,
+        ClassSession.end_time,
+        ClassSession.batch,
+        ClassSession.section
     ).all()
 
-    return [
-        ClassSessionResponse(
-            session_id=session.session_id,
-            faculty_name=session.faculty_name,
-            employee_id=session.employee_id,
-            code=session.code,
-            semester=session.semester,
-            date=session.date,
-            start_time=session.start_time,
-            end_time=session.end_time,
-            batch=session.batch,
-            section=session.section
-        )
-        for session in db_class_session
-    ]
+    return [ClassSessionResponse(**session._asdict()) for session in results]
 
-def get_class_session_of_faculty_service(db:Session,employee_id:str,semester:Optional[int]=None):
-    eomployee_id = employee_id.upper()
-    query = (
+def get_class_session_of_faculty_service(db: Session, employee_id: str):
+    employee_id = employee_id.upper()
+
+    """
+    This function retrieves class sessions for a specific faculty member based on their employee ID.
+    It performs the following steps:
+    1. Joins the ClassSession, Faculty, User, and Subject tables to gather
+         relevant information about the class sessions.
+    2. Filters the results to only include sessions where the Faculty's employee ID matches the provided employee_id.
+    3. Selects specific fields to return, including session ID, faculty name, employee
+            ID, subject code, semester, date, start time, end time, batch, and section.
+    4. If no sessions are found for the given employee ID, it raises a 404 HTTP exception.
+    5. Returns a list of ClassSessionResponse objects created from the query results.
+
+    The rule: Always join using the relationship paths between the models. Let the database handle the filtering.
+    """
+    results = (
         db.query(ClassSession)
         .join(Faculty, ClassSession.faculty_id == Faculty.id)
         .join(User, Faculty.user_id == User.id)
@@ -105,34 +120,26 @@ def get_class_session_of_faculty_service(db:Session,employee_id:str,semester:Opt
         )
     ).all()
 
-    if not query:
-        raise HTTPException(status_code=404,detail='no class session found for the given employee id')
+    if not results:
+        raise HTTPException(status_code=404, detail='No class session found for the given employee id')
     
-    return [
-        ClassSessionResponse(
-            session_id=session.session_id,
-            faculty_name=session.faculty_name,
-            employee_id=session.employee_id,
-            code=session.code,
-            semester=session.semester,
-            date=session.date,
-            start_time=session.start_time,
-            end_time=session.end_time,
-            batch=session.batch,
-            section=session.section
-        )
-        for session in query
-    ]
+    return [ClassSessionResponse(**session._asdict()) for session in results]
 
-def delete_class_session_service(db:Session,class_session_id:int):
+def delete_class_session_service(db:Session,class_session_id:int,enforce_branch_id:Optional[int] = None):
+    class_session = db.query(ClassSession).filter(ClassSession.id == class_session_id).first()
+    if not class_session:
+        raise HTTPException(status_code=404,detail='class session not found')
+    
+    if enforce_branch_id is not None:
+        subject = db.query(Subject).filter(Subject.id == class_session.subject_id).first()
+        subject_branch = db.query(BranchSubject).filter(BranchSubject.subject_id == subject.id,BranchSubject.branch_id == enforce_branch_id).first()
+        if not subject_branch:
+            raise HTTPException(status_code=403,detail='you do not have permission to delete this class session')
+
     try:
-        db_class_session = db.query(ClassSession).filter(ClassSession.id == class_session_id).first()
-        if not db_class_session:
-            raise HTTPException(status_code=404,detail='class session not found')   
-        db.delete(db_class_session)
+        delete_class_session(db=db,class_session=class_session)
         db.commit()
         return {'message':'successfully deleted class session'}
-    except ValueError as e:
-        raise HTTPException(status_code=404,detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500,detail=str(e))
+        db.rollback()
+        return {'message':str(e)}
