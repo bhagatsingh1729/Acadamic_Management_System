@@ -3,13 +3,13 @@
 # =========================================================
 
 from datetime import date
-
-from pydantic import BaseModel
+from typing import Literal
+from pydantic import BaseModel,Field,ConfigDict
 
 
 class ExamCreate(BaseModel):
 
-    type: str
+    type: str 
 
     subject_id: int
 
@@ -38,5 +38,4 @@ class ExamResponse(BaseModel):
 
     date: date
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

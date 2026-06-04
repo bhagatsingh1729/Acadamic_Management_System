@@ -17,7 +17,7 @@ from app.schemas.services_schemas.attendance__schemas.attendance_schemas import 
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from typing import Optional
-from app.models.models import Student, ClassSession, Subject, Branch,BranchSubject, Faculty,Attendance,User
+from app.models.models import Student, ClassSession, Subject, Branch,BranchSubject, Faculty,Attendance,User,StudentSubject
 
 
 def mark_attendance_service(db: Session, data: AttendanceCreateRequest, faculty_user_id: int):
@@ -164,3 +164,49 @@ def get_student_summary_service(db: Session, student_usn: str):
         attended_sessions=attended,
         attendance_percentage=round(percentage, 2)
     )
+
+def get_student_subject_attendance(db:Session,student_usn:str,subject_code:str):
+    student_usn = student_usn.upper()
+    student_db = db.query(Student).filter(Student.usn == student_usn).first()
+
+    if not student_db:
+        raise HTTPException(status_code=404,detail='student does not exist')
+    
+    subject_code = subject_code.upper()
+    subject_db = db.query(Subject).filter(Subject.code == subject_code).first()
+
+    if not subject_db:
+        raise HTTPException(status_code=404,detail='subject does not exist')
+    
+    student_subject_db = db.query(StudentSubject).filter(StudentSubject.student_id == student_db.id,StudentSubject.subject_id == subject_db.id).first()
+    if not student_subject_db:
+        raise HTTPException(status_code=404,detail='student is not enrolled to this subject')
+
+    query = (
+        db.query(Attendance)
+        .join(ClassSession, ClassSession.id == Attendance.class_session_id)
+        .join(Student, Student.id == Attendance.student_id)
+        .join(User, Student.user_id == User.id)
+        .filter(ClassSession.subject_id == subject_db.id, Attendance.student_id == student_db.id)
+        .with_entities(
+            User.name.label("student_name"),
+            Student.usn.label("usn"),
+            ClassSession.id.label("class_session_id"),
+            ClassSession.date.label("date"),
+            Attendance.status.label("status")
+        )
+    ).all()
+
+    count_total = len(query)
+    count_attended = sum(1 for record in query if record.status == 1)
+    attendance_percentage = (count_attended / count_total * 100) if count_total > 0 else 0.0
+
+    return [
+        AttendanceSummaryResponse(
+            usn=record.usn,
+            student_name=record.student_name,
+            total_sessions=count_total,
+            attended_sessions=count_attended,
+            attendance_percentage=round(attendance_percentage, 2)
+        ) for record in query
+    ]

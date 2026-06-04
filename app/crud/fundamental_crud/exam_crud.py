@@ -5,7 +5,7 @@
 from sqlalchemy.orm import Session
 from app.schemas.fundamental_schemas.exam_schema import ExamCreate
 from app.models.models import Exam, Subject, Student
-
+from fastapi import HTTPException
 
 VALID_EXAM_TYPES = [
     "IA1",
@@ -120,9 +120,9 @@ def create_exam(
 
     db.add(exam)
 
-    db.commit()
+    #db.commit()
 
-    db.refresh(exam)
+    #db.refresh(exam)
 
     return exam
 
@@ -195,8 +195,9 @@ def delete_exam(
     )
 
     if not exam:
-        raise ValueError(
-            "exam not found"
+        raise HTTPException(
+            status_code=404,
+            detail="exam not found"
         )
 
     db.delete(exam)
