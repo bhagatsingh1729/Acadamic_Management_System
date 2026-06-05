@@ -12,7 +12,7 @@ from app.models.models import (
         Subject
 )
 from app.schemas.fundamental_schemas.marks_schema import MarksCreate
-
+from fastapi import HTTPException
 
 def create_marks(
     db: Session,
@@ -30,7 +30,8 @@ def create_marks(
     )
 
     if not student:
-        raise ValueError(
+        raise HTTPException(
+            400,
             "student not found"
         )
 
@@ -45,7 +46,8 @@ def create_marks(
     )
 
     if not exam:
-        raise ValueError(
+        raise HTTPException(
+            400,
             "exam not found"
         )
 
@@ -54,7 +56,8 @@ def create_marks(
     # ---------------------------------------------------
 
     if student.semester != exam.semester:
-        raise ValueError(
+        raise HTTPException(
+            400,
             "student semester does not match exam semester"
         )
 
@@ -63,7 +66,8 @@ def create_marks(
     # ---------------------------------------------------
 
     if student.batch != exam.batch:
-        raise ValueError(
+        raise HTTPException(
+            400,
             "student batch does not match exam batch"
         )
 
@@ -81,7 +85,8 @@ def create_marks(
     )
 
     if not enrolled_subject:
-        raise ValueError(
+        raise HTTPException(
+            400,
             "student is not enrolled in this subject"
         )
 
@@ -90,12 +95,14 @@ def create_marks(
     # ---------------------------------------------------
 
     if data.score < 0:
-        raise ValueError(
+        raise HTTPException(
+            400,
             "score cannot be negative"
         )
 
     if data.score > exam.max_marks:
-        raise ValueError(
+        raise HTTPException(
+            400,
             "score exceeds max marks"
         )
 
@@ -113,7 +120,8 @@ def create_marks(
     )
 
     if existing_marks:
-        raise ValueError(
+        raise HTTPException(
+            400,
             "marks already exist"
         )
 
@@ -131,10 +139,31 @@ def create_marks(
 
     db.add(marks)
 
-    db.commit()
+    #db.commit()
 
-    db.refresh(marks)
+    #db.refresh(marks)
 
+    return marks
+
+def assign_marks(db: Session, data: MarksCreate, student: Student, exam: Exam):
+    """we would this function at service level instead of create_marks"""
+    # 1. Validate Business Logic (that depends on both objects)
+    if student.semester != exam.semester:
+        raise HTTPException(400, "student semester does not match exam semester")
+    if student.batch != exam.batch:
+        raise HTTPException(400, "student batch does not match exam batch")
+    
+    # 2. Score validation
+    if not (0 <= data.score <= exam.max_marks):
+        raise HTTPException(400, "Invalid score")
+
+    # 3. Check for duplicates
+    if db.query(Marks).filter_by(student_id=student.id, exam_id=exam.id).first():
+        raise HTTPException(400, "marks already exist")
+
+    # 4. Create
+    marks = Marks(student_id=student.id, exam_id=exam.id, score=data.score)
+    db.add(marks)
     return marks
 
 

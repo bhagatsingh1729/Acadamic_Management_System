@@ -2,7 +2,7 @@
 # marks_schema.py
 # =========================================================
 
-from pydantic import BaseModel
+from pydantic import BaseModel,ConfigDict,Field
 
 
 class MarksCreate(BaseModel):
@@ -11,7 +11,7 @@ class MarksCreate(BaseModel):
 
     exam_id: int
 
-    score: int
+    score: int = Field(...,gt=1,lt=101)
 
 
 class MarksResponse(BaseModel):
@@ -24,5 +24,4 @@ class MarksResponse(BaseModel):
 
     score: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
