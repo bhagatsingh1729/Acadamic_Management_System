@@ -1,37 +1,26 @@
+from sqlalchemy.orm import Session, joinedload
+from fastapi import HTTPException
+from typing import Optional
+
+from app.models.models import Branch, Subject, BranchSubject
 from app.schemas.services_schemas.subject_schemas.branch_subject_schemas import (
     BranchSubjectCreateRequest,
-    BranchSubjectUpdateRequest,
-)
-from app.schemas.fundamental_schemas.branch_subject_schema import (
-    BranchSubjectCreate,
+    MappingResponse
 )
 from app.crud.fundamental_crud.branch_subject_crud import (
     assign_subject_to_branch,
-    delete_branch_subject,
 )
-from typing import Optional
-from app.models.models import Branch,Subject,BranchSubject
-from sqlalchemy.orm import Session
-from fastapi import HTTPException
 
 def assign_subject_to_branch_service(
     data: BranchSubjectCreateRequest,
     db: Session,
     enforced_branch_uid: Optional[str] = None
-    # admin → their own branch_uid
-    # super_admin → None (no restriction)
 ):
     data.branch_uid = data.branch_uid.upper()
     data.code = data.code.upper()
 
-    # Ownership check
-    # Admin can only assign subjects to their own branch
-    if enforced_branch_uid is not None:
-        if data.branch_uid != enforced_branch_uid.upper():
-            raise HTTPException(
-                status_code=403,
-                detail="You can only assign subjects to your own branch"
-            )
+    if enforced_branch_uid and data.branch_uid != enforced_branch_uid.upper():
+        raise HTTPException(status_code=403, detail="You can only assign subjects to your own branch")
 
     try:
         branch = db.query(Branch).filter(Branch.branch_uid == data.branch_uid).first()
@@ -40,11 +29,15 @@ def assign_subject_to_branch_service(
         if not branch or not subject:
             raise HTTPException(status_code=404, detail="Branch or Subject not found")
 
-        new_mapping = assign_subject_to_branch(db, branch.id, subject.id)
-
+        # Assign and commit
+        assign_subject_to_branch(db, branch.id, subject.id)
         db.commit()
-        db.refresh(new_mapping)
-        return {"message": "Success"}
+        
+        # Return the full schema using the objects already in memory
+        return MappingResponse(
+            branch_uid=branch.branch_uid,
+            subject=subject
+        )
 
     except HTTPException:
         db.rollback()
@@ -55,17 +48,22 @@ def assign_subject_to_branch_service(
 
 
 def get_all_branch_subjects_service(db: Session):
+    # Use joinedload to fetch the whole object instead of flattening it
     results = (
         db.query(BranchSubject)
-        .join(Branch, Branch.id == BranchSubject.branch_id)
-        .join(Subject, Subject.id == BranchSubject.subject_id)
-        .with_entities(
-            Branch.branch_uid.label("branch_uid"),
-            Subject.code.label("code")
+        .options(
+            joinedload(BranchSubject.branch),
+            joinedload(BranchSubject.subject)
         )
         .all()
     )
-    return results
+    
+    return [
+        MappingResponse(
+            branch_uid=mapping.branch.branch_uid,
+            subject=mapping.subject
+        ) for mapping in results
+    ]
 
 
 def get_subjects_of_branch_service(branch_uid: str, db: Session):
@@ -73,15 +71,20 @@ def get_subjects_of_branch_service(branch_uid: str, db: Session):
     results = (
         db.query(BranchSubject)
         .join(Branch, Branch.id == BranchSubject.branch_id)
-        .join(Subject, Subject.id == BranchSubject.subject_id)
         .filter(Branch.branch_uid == branch_uid)
-        .with_entities(
-            Branch.branch_uid.label("branch_uid"),
-            Subject.code.label("code")
+        .options(
+            joinedload(BranchSubject.branch),
+            joinedload(BranchSubject.subject)
         )
         .all()
     )
-    return results
+    
+    return [
+        MappingResponse(
+            branch_uid=mapping.branch.branch_uid,
+            subject=mapping.subject
+        ) for mapping in results
+    ]
 
 
 def delete_branch_subject_service(
@@ -89,20 +92,12 @@ def delete_branch_subject_service(
     subject_code: str,
     db: Session,
     enforced_branch_uid: Optional[str] = None
-    # admin → their own branch_uid
-    # super_admin → None (no restriction)
 ):
     branch_uid = branch_uid.upper()
     subject_code = subject_code.upper()
 
-    # Ownership check
-    # Admin can only delete mappings for their own branch
-    if enforced_branch_uid is not None:
-        if branch_uid != enforced_branch_uid.upper():
-            raise HTTPException(
-                status_code=403,
-                detail="You can only delete subject mappings for your own branch"
-            )
+    if enforced_branch_uid and branch_uid != enforced_branch_uid.upper():
+        raise HTTPException(status_code=403, detail="You can only delete subject mappings for your own branch")
 
     try:
         branch = db.query(Branch).filter(Branch.branch_uid == branch_uid).first()

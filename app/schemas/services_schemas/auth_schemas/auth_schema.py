@@ -10,7 +10,9 @@ class LoginSchema(BaseModel):
     email: EmailStr
     password: str
 
-
+#=============================================
+# Response schema
+#=============================================
 class TokenResponseSchema(BaseModel):
     access_token: str
     token_type: str

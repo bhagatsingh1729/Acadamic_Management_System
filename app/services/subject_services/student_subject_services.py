@@ -1,8 +1,6 @@
 from app.schemas.services_schemas.subject_schemas.student_subject_schemas import (
     EnrollmentRequest,
     EnrollmentResponse,
-    StudentSchema,
-    SubjectSchema,
 )
 from app.schemas.fundamental_schemas.student_subject_schema import (
     StudentSubjectCreate,
@@ -49,9 +47,8 @@ def enroll_student_service(db: Session, data: EnrollmentRequest, enforced_branch
         db.commit()
         db.refresh(enrollment)
         return EnrollmentResponse(
-            student=StudentSchema.model_validate(student),
-            subject=SubjectSchema.model_validate(subject),
-            created_at=enrollment.created_at
+            usn=enrollment.student.usn,
+            subject=enrollment.subject
         )   
     except HTTPException:
         db.rollback()
@@ -82,9 +79,10 @@ def get_all_enrollments_service(db: Session, enforced_branch_uid: Optional[str] 
     # Map to schema
     return [
         EnrollmentResponse(
-            student=StudentSchema.model_validate(e.student),
-            subject=SubjectSchema.model_validate(e.subject),
-            created_at=e.created_at
+            usn=e.student.usn,
+            subject_name=e.subject.name,
+            code=e.subject.code,
+            subject=e.subject
         ) for e in enrollments
     ]
 
@@ -105,9 +103,9 @@ def get_enrollments_for_student_service(db: Session, usn: str, enforced_branch_u
 
     return [
         EnrollmentResponse(
-            student=StudentSchema.model_validate(e.student),
-            subject=SubjectSchema.model_validate(e.subject),
-            created_at=e.created_at
+            usn=e.student.usn,
+            subject_name=e.subject.name,
+            code=e.subject.code
         ) for e in enrollments
     ]
 
@@ -133,9 +131,9 @@ def get_students_enrolled_in_subject_service(db: Session, code: str, enforced_br
 
     return [
         EnrollmentResponse(
-            student=StudentSchema.model_validate(e.student),
-            subject=SubjectSchema.model_validate(e.subject),
-            created_at=e.created_at
+            usn=e.student.usn,
+            subject_name=e.subject.name,
+            code=e.subject.code
         ) for e in enrollments
     ]
 

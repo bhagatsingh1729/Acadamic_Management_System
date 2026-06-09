@@ -19,6 +19,9 @@ router = APIRouter(prefix="/exams",tags=["Exam Management"])
 
 @router.post("/create")
 def create_exam_route(data:ExamCreateRequest,db:Session=Depends(get_db),current_user=Depends(require_super_admin)):
+    """
+    only super admin can create exam
+    """
     return create_exam_service(db=db,data=data)
 
 
@@ -27,6 +30,13 @@ def get_all_exams_route(
     db: Session = Depends(get_db),
     current_user = Depends(require_roles('admin', 'faculty', 'student', 'super_admin'))
 ):
+    """
+    this is an unified function for all roles to get exams
+    if the current user is student this endpoint will return the list
+    of exams which belongs to student only.
+    else it will return list of all the exams for other roles if the current user 
+    is not student.
+    """
     student: Optional[Student] = None
     
     if current_user.role == 'student':
@@ -42,4 +52,7 @@ def delete_exam_route(
     db: Session = Depends(get_db),
     current_user = Depends(require_roles('super_admin'))
 ):
+    """
+    only super admin can delete exam.
+    """
     return delete_exam_service(db=db,exam_id=exam_id)

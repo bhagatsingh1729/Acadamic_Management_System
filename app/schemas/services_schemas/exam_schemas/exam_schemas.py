@@ -12,6 +12,9 @@ class ExamCreateRequest(BaseModel):
     date:date
 
 
+# -----------------------------------------
+# RESPONSE SCHEMA
+# -----------------------------------------
 class ExamResponse(BaseModel):
 
     type: str

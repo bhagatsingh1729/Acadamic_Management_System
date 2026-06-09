@@ -40,10 +40,19 @@ class FacultyUpdateRequest(BaseModel):
     dept_uid: Optional[str] = None
 
 
+class DepartmentData(BaseModel):
+    name:str
+    dept_uid:str
+
+    model_config = ConfigDict(from_attributes=True)
+
+# -----------------------------------------
+# RESPONSE SCHEMA
+# -----------------------------------------
 class FacultyResponse(BaseModel):
     id: int
     employee_id: str
-    dept_id: Optional[int] = None      # FIX: was int (non-optional) — DB allows NULL
+    department:DepartmentData
     user: UserBasicInfo
 
     model_config = ConfigDict(from_attributes=True)

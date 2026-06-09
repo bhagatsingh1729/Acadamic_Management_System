@@ -2,13 +2,14 @@
 from fastapi import APIRouter, Depends
 from app.models.models import User
 from app.core.dependencies import get_current_user  # 👈 Import your dependency
-
+from app.schemas.response_schemas.base_response import UserBasicInfo
 
 router = APIRouter(prefix="/users", tags=["User Management"])
 
-@router.get("/me")
+@router.get("/me",response_model=UserBasicInfo)
 def read_current_user(current_user: User = Depends(get_current_user)):  # 👈 Use it here
-    return {"id": current_user.id, "email": current_user.email, "name":current_user.name, "role":current_user.role}
+    #return {"id": current_user.id, "email": current_user.email, "name":current_user.name, "role":current_user.role}
+    return current_user
     
 
 # =============================================================
@@ -55,6 +56,19 @@ def get_user_via_email_route(
     current_user=Depends(require_super_admin)
 ):
     return get_user_via_email_service(email, db)
+
+@router.patch("/password/update/me")
+def change_my_password_route(
+    data: PasswordChangeRequest,       
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    return change_user_password_service(
+        email=current_user.email,
+        new_password=data.new_password,
+        db=db
+    )
+    
 
 
 @router.patch("/password/{email}")

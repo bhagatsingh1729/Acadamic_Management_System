@@ -457,6 +457,8 @@ class ClassSession(TimestampMixin, Base):
     section    = Column(String,  nullable=False, default="A")  # matches Student.section
 
     __table_args__ = (
+        # Added Indexing
+        Index("idx_class_session_lookup", "semester", "batch", "section"),
         # Replaces: CHECK(end_time > start_time)
         CheckConstraint("end_time > start_time", name="ck_classsession_time"),
         #Adding an check constraint for semester

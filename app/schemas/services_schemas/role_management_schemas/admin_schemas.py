@@ -36,11 +36,17 @@ class AdminUpdate(BaseModel):
     address: Optional[str] = None
     branch_uid: Optional[str] = None
 
+class BranchData(BaseModel):
+    name: str
+    branch_uid: str  # no id
 
+# -----------------------------------------
+# RESPONSE SCHEMA
+# -----------------------------------------
 class AdminResponse(BaseModel):
     id: int
-    user_id: int
-    branch_id: Optional[int] = None    # FIX: was int (non-optional) — DB allows NULL
+
+    branch:BranchData
 
     user: UserBasicInfo
 

@@ -25,9 +25,23 @@ class AttendanceBulkMarkRequest(BaseModel):
     class_session_id: int
     records: List[BulkAttendanceItem]
 
+#=============================================
+# Response schema
+#=============================================
 class AttendanceSummaryResponse(BaseModel):
     usn: str
     student_name: str
+    total_sessions: int
+    attended_sessions: int
+    attendance_percentage: float
+
+    model_config = ConfigDict(from_attributes=True)
+
+class StudentAttendanceResponse(BaseModel):
+    usn: str
+    student_name: str
+    subject_name:str
+    subject_code:str
     total_sessions: int
     attended_sessions: int
     attendance_percentage: float

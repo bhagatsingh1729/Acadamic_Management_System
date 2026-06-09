@@ -48,8 +48,10 @@ def assign_marks_service(data:AssignMarksRequest,db:Session,faculty_id:Optional[
         db.refresh(marks)
 
         return AssignMarksResponse(
+            id=marks.id,
             usn=db_student.usn,
             exam_id=db_exam.id,
+            subject_code=db_exam.subject.code,
             score=data.score
         )
     except HTTPException:
@@ -82,7 +84,7 @@ def update_marks_service(score: int, usn: str, exam_id: int, db: Session):
         db_marks.score = score
         db.commit()
         db.refresh(db_marks)
-        return AssignMarksResponse(usn=db_student.usn, exam_id=db_exam.id, score=db_marks.score)
+        return AssignMarksResponse(id=db_marks.id,usn=db_student.usn, exam_id=db_exam.id,subject_code=db_exam.subject.code, score=db_marks.score)
     except Exception:
         db.rollback()
         raise
@@ -94,7 +96,7 @@ def get_marks_of_exam_service(exam_id: int, db: Session):
         
     # Map to schema here to ensure data consistency
     return [
-        AssignMarksResponse(usn=m.student.usn, exam_id=m.exam_id, score=m.score) 
+        AssignMarksResponse(id=m.id,usn=m.student.usn, exam_id=m.exam_id,subject_code = m.exam.subject.code, score=m.score) 
         for m in results
     ]
 
@@ -111,7 +113,7 @@ def get_student_marks_service(student_usn: str, db: Session):
         raise HTTPException(status_code=404, detail='Marks not found')
 
     return [
-        AssignMarksResponse(usn=db_student.usn, exam_id=m.exam_id, score=m.score) 
+        AssignMarksResponse(id=m.id,usn=db_student.usn, exam_id=m.exam_id,subject_code = m.exam.subject.code, score=m.score) 
         for m in results
     ]
 

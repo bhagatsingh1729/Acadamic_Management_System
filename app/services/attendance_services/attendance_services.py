@@ -17,7 +17,7 @@ from app.schemas.services_schemas.attendance__schemas.attendance_schemas import 
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from typing import Optional
-from app.models.models import Student, ClassSession, Subject, Branch,BranchSubject, Faculty,Attendance,User,StudentSubject
+from app.models.models import Student, ClassSession, Subject, Branch,BranchSubject, Faculty,Attendance,User,StudentSubject,FacultySubject
 
 
 def mark_attendance_service(db: Session, data: AttendanceCreateRequest, faculty_user_id: int):

@@ -1,26 +1,25 @@
 from app.schemas.services_schemas.subject_schemas.subject_schemas import (
     SubjectCreateRequest,
     SubjectUpdateRequest,
+    SubjectResponse,
 )
 
 from app.crud.fundamental_crud.subject_crud import (
     create_subject,
-    get_all_subjects,
-    get_subject_by_id,
     get_subject_by_code,
     get_subjects_by_semester,
-    update_subject,
-    delete_subject
 )
 
 from typing import Optional
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-from app.models.models import Subject,Branch
+from app.models.models import Subject,Branch,BranchSubject
 
 def create_subject_service(subject_data:SubjectCreateRequest,db:Session):
     try:
-        return create_subject(db=db,subject_data=subject_data)
+        new_subject = create_subject(db=db,subject_data=subject_data)
+        db.commit()
+        db.refresh(new_subject)
     except HTTPException:
         raise
     except Exception as e:
@@ -31,8 +30,26 @@ def get_subject_via_code_service(code:str,db:Session):
     code = code.upper()
     return get_subject_by_code(db=db,subject_code=code)
 
-def get_all_subjects_service(db:Session):
+def get_all_subjects_service(db:Session,enforced_branch_id:Optional[int] = None):
     try:
+        if enforced_branch_id:
+            db_subjects = (
+                db.query(BranchSubject)
+                .filter(enforced_branch_id == BranchSubject.branch_id)
+            ).all()
+
+            if not db_subjects:
+                raise HTTPException(status_code=404,detail='subject not found for your branch')
+            return [
+                SubjectResponse(
+                    id=row.subject.id,
+                    name=row.subject.name,
+                    code=row.subject.code,
+                    semester=row.subject.semester,
+                    credits=row.subject.credits
+                )for row in db_subjects
+            ]
+
         db_subjects = db.query(Subject).all()
         return db_subjects
     except HTTPException:

@@ -30,14 +30,20 @@ class StudentUpdateRequest(BaseModel):
     address: Optional[str] = None
 
 
+class BranchData(BaseModel):
+    name: str
+    branch_uid: str  # no id
+
+# -----------------------------------------
+# RESPONSE SCHEMA
+# -----------------------------------------
 class StudentResponse(BaseModel):
-    id: int
-    user_id: int
+    id: int          
     usn: str
     semester: int
     batch: str
     section: str
-    branch_id: int
+    branch: BranchData
     user: UserBasicInfo
 
     model_config = ConfigDict(from_attributes=True)

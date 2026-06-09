@@ -8,8 +8,6 @@ from app.services.subject_services.student_subject_services import (
 from app.database import get_db
 from sqlalchemy.orm import Session
 from app.core.dependencies import (
-    require_admin,
-    require_super_admin,
     require_roles,
 )
 
@@ -24,6 +22,10 @@ router = APIRouter(prefix="/enrollments",tags=["Enrollments"])
 
 @router.post("",response_model=EnrollmentResponse)
 def enroll_student_route(data:EnrollmentRequest,db:Session=Depends(get_db),current_user=Depends(require_roles('admin','super_admin'))):
+    """
+    this endpoint is used by admin and 
+    super_admin to enroll student to a subject.
+    """
 
     # Enforce branch restriction for admins
     enforced_branch_uid = None
@@ -37,6 +39,11 @@ def enroll_student_route(data:EnrollmentRequest,db:Session=Depends(get_db),curre
 
 @router.get("",response_model=list[EnrollmentResponse])
 def get_all_enrollments_route(db:Session=Depends(get_db),current_user=Depends(require_roles('admin','super_admin','faculty','hod'))):
+    """
+    this endpoint helps in getting all the enrollment
+    list of students.
+    """
+     
     # Enforce branch restriction for admins
     enforced_branch_uid = None
     if current_user.role == "admin":
@@ -49,6 +56,10 @@ def get_all_enrollments_route(db:Session=Depends(get_db),current_user=Depends(re
 
 @router.get("/student/{usn}",response_model=list[EnrollmentResponse])
 def get_enrollments_for_student_route(usn:str,db:Session=Depends(get_db),current_user=Depends(require_roles('admin','super_admin','faculty','hod'))):
+    """
+    get enrollments of a student based
+    on the staudent's usn
+    """
     # Enforce branch restriction for admins
     enforced_branch_uid = None
     if current_user.role == "admin":
@@ -61,6 +72,10 @@ def get_enrollments_for_student_route(usn:str,db:Session=Depends(get_db),current
 
 @router.get("/subject/{code}",response_model=list[EnrollmentResponse])
 def get_students_enrolled_in_subject_route(code:str,db:Session=Depends(get_db),current_user=Depends(require_roles('admin','super_admin','faculty','hod'))):
+    """
+    get enrollments for a specific subject
+    based on the subject code
+    """
     # Enforce branch restriction for admins
     enforced_branch_uid = None
     if current_user.role == "admin":
@@ -73,6 +88,10 @@ def get_students_enrolled_in_subject_route(code:str,db:Session=Depends(get_db),c
 
 @router.delete("/student/{usn}/subject/{code}", response_model=dict)
 def delete_enrollment_route(usn:str,code:str,db:Session=Depends(get_db),current_user=Depends(require_roles('admin','super_admin'))):
+    """
+    Endpoint to delete an enrollment based on
+    usn and subject code
+    """
     # Enforce branch restriction for admins
     enforced_branch_uid = None
     if current_user.role == "admin":

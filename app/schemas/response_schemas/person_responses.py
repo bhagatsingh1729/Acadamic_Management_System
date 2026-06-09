@@ -70,7 +70,6 @@ class HodResponse(BaseModel):
 # =============================================================
 class FacultyResponse(BaseModel):
     id: int
-    user_id: int
     employee_id: str
     dept_id: Optional[int] = None
     user: UserBasicInfo

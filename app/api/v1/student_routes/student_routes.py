@@ -45,10 +45,7 @@ from app.database import get_db
 from app.models.models import Admin, Student ,HOD
 from app.core.dependencies import (
     require_roles,
-    require_super_admin,
-    get_current_admin,
     get_current_student,
-    get_current_user,
 )
 from app.schemas.services_schemas.role_management_schemas.student_schemas import (
     StudentCreateRequest,

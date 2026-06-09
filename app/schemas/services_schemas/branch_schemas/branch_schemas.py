@@ -12,11 +12,12 @@ class BranchUpdate(BaseModel):
     branch_uid: str | None = None
 
 
+#=============================================
+# Response schema
+#=============================================
 class BranchResponse(BaseModel):
     id: int
     name: str
     branch_uid: str
-    created_at: datetime
-    updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

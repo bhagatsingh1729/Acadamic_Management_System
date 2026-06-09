@@ -7,7 +7,6 @@ from app.services.marks_services.marks_services import (
     update_marks_service,
     get_marks_of_exam_service,
     get_student_marks_service,
-    delete_marks_service,
 )
 
 from app.models.models import Faculty,Exam,Marks,FacultySubject,Subject
@@ -29,6 +28,24 @@ def assign_marks_route(data:AssignMarksRequest,db:Session=Depends(get_db),curren
             raise HTTPException(status_code=404,detail='faculty not found')
     
     return assign_marks_service(db=db,data=data,faculty_id=db_faculty.id)
+
+@router.get("/me",response_model=list[AssignMarksResponse])
+def students_get_marks_route(db:Session=Depends(get_db),current_user = Depends(require_roles("student"))):
+    db_marks = db.query(Marks).filter(Marks.student_id == current_user.student.id).all()
+
+    if not db_marks:
+        raise HTTPException(status_code=404,detail='no marks found')
+    
+    return [
+        AssignMarksResponse(
+            id=row.id,
+            usn=row.student.usn,
+            exam_id=row.exam.id,
+            subject_code = row.exam.subject.code,
+            score=row.score
+        )for row in db_marks
+    ]
+
 
 @router.get("/{exam_id}",response_model=list[AssignMarksResponse])
 def get_all_exam_marks_route(exam_id:int,db:Session=Depends(get_db),current_user=Depends(require_roles("faculty","admin","super_admin"))):

@@ -6,8 +6,6 @@ from app.schemas.fundamental_schemas.faculty_subject_schema import (
 )
 from app.schemas.services_schemas.subject_schemas.faculty_subject_schemas import (
     FacultySubjectRequest,
-    FacultySchema,
-    SubjectSchema,
     FacultySubjectResponse,
 )
 from sqlalchemy.orm import Session
@@ -35,8 +33,8 @@ def assign_subject_to_faculty_service(db:Session,data:FacultySubjectRequest):
         db.refresh(mapping)
 
         return FacultySubjectResponse(
-            employee_id=FacultySchema.model_validate(db_faculty),
-            code=SubjectSchema.model_validate(db_subject)
+            employee_id=mapping.faculty.employee_id,
+            subject=mapping.subject
         )
     except HTTPException:
         db.rollback()
@@ -49,6 +47,10 @@ def get_subjects_of_faculty_service(employee_id:str,db:Session):
 
     if not db_faculty:
         raise HTTPException(status_code=404,detail='faculty not found')
+    
+    query = (
+        db.query()
+    )
     
     return db_faculty.subjects
 

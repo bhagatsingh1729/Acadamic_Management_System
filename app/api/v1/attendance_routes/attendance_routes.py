@@ -6,15 +6,22 @@ from app.core.dependencies import (
     get_db, 
     require_roles, 
     get_current_faculty,
-    get_current_admin
+    get_current_admin,
 )
-from app.models.models import Faculty, Admin, FacultySubject, Student, Subject,BranchSubject
+from app.models.models import (
+    Faculty, Admin, 
+    FacultySubject, Student, 
+    Subject,BranchSubject,Attendance,
+    User, ClassSession,
+)
 from app.schemas.services_schemas.attendance__schemas.attendance_schemas import (
     AttendanceCreateRequest,
     AttendanceResponse,
     AttendanceBulkMarkRequest,
-    AttendanceSummaryResponse
+    AttendanceSummaryResponse,
+    StudentAttendanceResponse,
 )
+from sqlalchemy import case, func
 from app.services.attendance_services.attendance_services import (
     get_student_subject_attendance,
     mark_attendance_service,
@@ -79,6 +86,44 @@ def get_student_summary_route(
             raise HTTPException(status_code=403, detail="You can only view your own attendance")
 
     return get_student_summary_service(db, usn)
+
+
+@router.get("/students/me", response_model=list[StudentAttendanceResponse])
+def get_my_attendance_route(
+    db: Session = Depends(get_db),
+    current_user = Depends(require_roles("student"))
+):
+    if current_user.role == "student":
+        db_attendance = (
+            db.query(
+                Student.usn.label("usn"),
+                User.name.label("student_name"),
+                Subject.name.label("subject_name"),
+                Subject.code.label("subject_code"),
+                func.count(ClassSession.id).label("total_sessions"),
+                func.sum(
+                    case((Attendance.status == 1, 1), else_=0)
+                ).label("attended_sessions"),
+                (
+                    func.sum(case((Attendance.status == 1, 1), else_=0)) * 100.0 /
+                    func.nullif(func.count(ClassSession.id), 0)   # avoid division by zero
+                ).label("attendance_percentage"),
+            )
+            .join(Student, Attendance.student_id == Student.id)
+            .join(User, Student.user_id == User.id)
+            .join(ClassSession, Attendance.class_session_id == ClassSession.id)
+            .join(Subject, ClassSession.subject_id == Subject.id)
+            .filter(Attendance.student_id == current_user.student.id)
+            .group_by(Student.usn, User.name, Subject.name, Subject.code)
+            .all()
+        )
+
+        if not db_attendance:
+            raise HTTPException(status_code=404, detail="attendance not found")
+
+        return db_attendance
+
+
 
 @router.get("/student/{usn}/subject/{subject_code}", response_model=List[AttendanceSummaryResponse])
 def get_student_subject_attendance_route(

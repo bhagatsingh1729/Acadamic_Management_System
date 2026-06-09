@@ -15,6 +15,10 @@ class ClassSessionCreateRequest(BaseModel):
     batch:str
     section:str
 
+
+#=============================================
+# Response schema
+#=============================================
 class ClassSessionResponse(BaseModel):
     session_id:int
     faculty_name:str

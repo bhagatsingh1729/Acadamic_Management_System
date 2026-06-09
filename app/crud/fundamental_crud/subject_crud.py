@@ -48,8 +48,8 @@ def create_subject(
     )
 
     db.add(new_subject)
-    db.commit()
-    db.refresh(new_subject)
+    #db.commit()
+    #db.refresh(new_subject)
 
     return new_subject
 

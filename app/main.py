@@ -35,6 +35,7 @@ from app.api.v1.class_session_routes.class_session_routes import router as class
 from app.api.v1.attendance_routes.attendance_routes import router as attendance_router
 from app.api.v1.exam_routes.exam_routes import router as exam_router
 from app.api.v1.marks_routes.marks_routes import router as marks_router
+from app.api.v1.hod_routes.hod_routes import router as hod_router
 # ── Create all tables on startup ─────────────────────────────
 Base.metadata.create_all(bind=engine)
 
@@ -69,6 +70,7 @@ app.include_router(class_session_router,prefix=API_PREFIX)
 app.include_router(attendance_router,prefix=API_PREFIX)
 app.include_router(exam_router,prefix=API_PREFIX)
 app.include_router(marks_router,prefix=API_PREFIX)
+app.include_router(hod_router,prefix=API_PREFIX)
 # NOTE: Add more routers here as each service is built.
 # Example:
 #   from app.api.v1.faculty_routes import router as faculty_router

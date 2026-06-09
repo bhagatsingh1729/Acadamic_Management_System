@@ -1,24 +1,3 @@
-# =============================================================
-# api/v1/super_admin_routes/role_management_routes.py
-#
-# FIXES APPLIED:
-#
-#   FIX 1.6 — Password passed as query parameter (security hole)
-#     change_user_password_route was receiving new_password as
-#     a query param, meaning it appeared in the URL and got logged.
-#     Fixed: new_password now comes from a request body via
-#     PasswordChangeRequest schema.
-#
-#   FIX 1.7 — Route conflict: /{usn} matching non-student paths
-#     Routes GET "" and GET /{usn} at the bottom were dangerous —
-#     "/{usn}" could match "/admins", "/faculty" etc.
-#     Removed the duplicate GET "" (list_students) since
-#     GET /students already does the same thing.
-#     Kept GET /students/{usn} with explicit prefix to avoid ambiguity.
-#
-#   ALSO FIXED — Removed unused imports
-# =============================================================
-
 from fastapi import APIRouter, Depends, Body
 from sqlalchemy.orm import Session
 from pydantic import EmailStr

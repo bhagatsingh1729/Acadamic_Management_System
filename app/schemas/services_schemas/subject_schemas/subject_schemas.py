@@ -25,9 +25,9 @@ class SubjectUpdateRequest(BaseModel):
 # RESPONSE SCHEMA
 # ------------------------------------------------
 class SubjectResponse(BaseModel):
-    id: int
-    name: str
-    code: str
+    id: int #subject id
+    name: str #subject name
+    code: str #subject code
     semester: int
     credits: int
 

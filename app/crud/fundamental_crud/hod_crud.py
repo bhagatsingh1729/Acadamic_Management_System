@@ -108,9 +108,9 @@ def create_hod(
 
     db.add(hod)
 
-    db.commit()
+    #db.commit()
 
-    db.refresh(hod)
+    #db.refresh(hod)
 
     return hod
 

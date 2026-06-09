@@ -14,8 +14,12 @@ from app.schemas.fundamental_schemas.branch_schema import BranchResponse
 # =============================================================
 # BRANCH RESPONSE
 # =============================================================
-class BranchResponse(BranchResponse):
-    pass
+class BranchResponse(BaseModel):
+    id: int
+    name: str
+    branch_uid: str
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 # =============================================================
@@ -45,10 +49,12 @@ class SubjectResponse(BaseModel):
 # =============================================================
 # BRANCH-SUBJECT MAPPING RESPONSE
 # =============================================================
-class BranchSubjectResponse(BaseModel):
-    id: int
-    branch_id: int
-    subject_id: int
+class Branch_Subjects_response(BaseModel):
+
+    name: str
+    code: str
+    semester: int
+    credits: int
 
     model_config = ConfigDict(from_attributes=True)
 

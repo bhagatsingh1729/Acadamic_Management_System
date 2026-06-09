@@ -4,16 +4,17 @@ class FacultySubjectRequest(BaseModel):
     employee_id:str
     code:str
 
-class FacultySchema(BaseModel):
-    employee_id:str
-    model_config = ConfigDict(from_attributes=True)
 
-class SubjectSchema(BaseModel):
+class SubjectData(BaseModel):
+    name:str
     code:str
+    semester:int
+    credits:int
+
     model_config = ConfigDict(from_attributes=True)
 
 class FacultySubjectResponse(BaseModel):
-    employee_id:FacultySchema
-    code:SubjectSchema
+    employee_id:str
+    subject:SubjectData
 
     model_config = ConfigDict(from_attributes=True)
