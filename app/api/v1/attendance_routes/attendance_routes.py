@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import case, func
 from typing import List
 
 from app.core.dependencies import (
@@ -7,12 +8,10 @@ from app.core.dependencies import (
     require_roles, 
     get_current_faculty,
     get_current_admin,
+    get_current_student
 )
 from app.models.models import (
-    Faculty, Admin, 
-    FacultySubject, Student, 
-    Subject,BranchSubject,Attendance,
-    User, ClassSession,
+    User, Student, Subject, BranchSubject, FacultySubject, Faculty, Admin, ClassSession, Attendance
 )
 from app.schemas.services_schemas.attendance__schemas.attendance_schemas import (
     AttendanceCreateRequest,
@@ -21,7 +20,6 @@ from app.schemas.services_schemas.attendance__schemas.attendance_schemas import 
     AttendanceSummaryResponse,
     StudentAttendanceResponse,
 )
-from sqlalchemy import case, func
 from app.services.attendance_services.attendance_services import (
     get_student_subject_attendance,
     mark_attendance_service,
@@ -33,16 +31,21 @@ from app.services.attendance_services.attendance_services import (
 
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
 
-# 1. Mark single attendance (Faculty only)
+# =========================================================================
+# 1. Mark Single Attendance (Faculty Only)
+# =========================================================================
 @router.post("/mark", response_model=AttendanceResponse)
 def mark_attendance_route(
     data: AttendanceCreateRequest,
     db: Session = Depends(get_db),
-    faculty: Faculty = Depends(get_current_faculty) # Resolves user + verifies profile
+    faculty: Faculty = Depends(get_current_faculty)
 ):
     return mark_attendance_service(db, data, faculty.user_id)
 
-# 2. Bulk mark (Faculty only)
+
+# =========================================================================
+# 2. Bulk Mark Attendance (Faculty Only)
+# =========================================================================
 @router.post("/bulk-mark")
 def bulk_mark_attendance_route(
     request: AttendanceBulkMarkRequest,
@@ -51,134 +54,123 @@ def bulk_mark_attendance_route(
 ):
     return bulk_mark_attendance_service(db, request, faculty.user_id)
 
-# 3. Generate attendance "shells" (Admin only)
+
+# =========================================================================
+# 3. Generate Attendance "Shells" (Admin Only)
+# =========================================================================
 @router.post("/generate/{class_session_id}")
 def generate_attendance_route(
     class_session_id: int,
     db: Session = Depends(get_db),
     admin: Admin = Depends(get_current_admin)
 ):
-    # The service will verify the branch_id inside if you pass the admin context
-    return generate_attendance_for_session_service(db, class_session_id)
+    # Pass the admin's branch_id directly into the service layer to enforce isolation boundaries
+    return generate_attendance_for_session_service(db, class_session_id, enforce_branch_id=admin.branch_id)
 
-# 4. Get report for a session
+
+# =========================================================================
+# 4. Get Report for a Specific Session
+# =========================================================================
 @router.get("/session/{class_session_id}", response_model=List[AttendanceResponse])
 def get_session_attendance_route(
     class_session_id: int,
     db: Session = Depends(get_db),
-    current_user = Depends(require_roles("admin", "faculty", "super_admin"))
+    current_user: User = Depends(require_roles("admin", "faculty", "super_admin"))
 ):
     return get_session_attendance_service(db, class_session_id)
 
+
+# =========================================================================
 # 5. Get Student Summary
+# =========================================================================
 @router.get("/summary/{usn}", response_model=AttendanceSummaryResponse)
 def get_student_summary_route(
     usn: str,
     db: Session = Depends(get_db),
-    current_user = Depends(require_roles("student", "admin", "faculty", "super_admin"))
+    current_user: User = Depends(require_roles("student", "admin", "faculty", "super_admin"))
 ):
-    # Logic to ensure student can only see their own summary if they are a student
+    usn_upper = usn.upper()
+
+    # RBAC Data Isolation Check
     if current_user.role == "student":
-        # Simply fetch the student record attached to the current user
-        student = db.query(Student).filter(Student.user_id == current_user.id).first()
-        # Verify the USN in the URL matches the USN of the logged-in student
-        if not student or student.usn.upper() != usn.upper():
-            raise HTTPException(status_code=403, detail="You can only view your own attendance")
+        # Resolve the student record instantly using your custom dependency shortcut
+        student = get_current_student(current_user=current_user, db=db)
+        if student.usn.upper() != usn_upper:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only view your own attendance data summary")
 
-    return get_student_summary_service(db, usn)
+    return get_student_summary_service(db, usn_upper)
 
 
-@router.get("/students/me", response_model=list[StudentAttendanceResponse])
+# =========================================================================
+# 6. Get My Attendance — Grouped by Subjects (Student Only)
+# =========================================================================
+@router.get("/students/me", response_model=List[StudentAttendanceResponse])
 def get_my_attendance_route(
     db: Session = Depends(get_db),
-    current_user = Depends(require_roles("student"))
+    student: Student = Depends(get_current_student) # Using clean record resolver from dependencies
 ):
-    if current_user.role == "student":
-        db_attendance = (
-            db.query(
-                Student.usn.label("usn"),
-                User.name.label("student_name"),
-                Subject.name.label("subject_name"),
-                Subject.code.label("subject_code"),
-                func.count(ClassSession.id).label("total_sessions"),
-                func.sum(
-                    case((Attendance.status == 1, 1), else_=0)
-                ).label("attended_sessions"),
-                (
-                    func.sum(case((Attendance.status == 1, 1), else_=0)) * 100.0 /
-                    func.nullif(func.count(ClassSession.id), 0)   # avoid division by zero
-                ).label("attendance_percentage"),
-            )
-            .join(Student, Attendance.student_id == Student.id)
-            .join(User, Student.user_id == User.id)
-            .join(ClassSession, Attendance.class_session_id == ClassSession.id)
-            .join(Subject, ClassSession.subject_id == Subject.id)
-            .filter(Attendance.student_id == current_user.student.id)
-            .group_by(Student.usn, User.name, Subject.name, Subject.code)
-            .all()
+    db_attendance = (
+        db.query(
+            Student.usn.label("usn"),
+            User.name.label("student_name"),
+            Subject.name.label("subject_name"),
+            Subject.code.label("subject_code"),
+            func.count(ClassSession.id).label("total_sessions"),
+            func.sum(case((Attendance.status == 1, 1), else_=0)).label("attended_sessions"),
+            (func.sum(case((Attendance.status == 1, 1), else_=0)) * 100.0 / 
+             func.nullif(func.count(ClassSession.id), 0)).label("attendance_percentage"),
         )
+        .join(Student, Attendance.student_id == Student.id)
+        .join(User, Student.user_id == User.id)
+        .join(ClassSession, Attendance.class_session_id == ClassSession.id)
+        .join(Subject, ClassSession.subject_id == Subject.id)
+        .filter(Attendance.student_id == student.id)
+        .group_by(Student.usn, User.name, Subject.name, Subject.code)
+        .all()
+    )
 
-        if not db_attendance:
-            raise HTTPException(status_code=404, detail="attendance not found")
+    if not db_attendance:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No attendance tracking records found for this profile")
 
-        return db_attendance
+    return [StudentAttendanceResponse(**row._asdict()) for row in db_attendance]
 
 
-
-@router.get("/student/{usn}/subject/{subject_code}", response_model=List[AttendanceSummaryResponse])
+# =========================================================================
+# 7. Get Student Attendance Summary for a Specific Subject
+# =========================================================================
+@router.get("/student/{usn}/subject/{subject_code}", response_model=AttendanceSummaryResponse)
 def get_student_subject_attendance_route(
     usn: str,
     subject_code: str,
     db: Session = Depends(get_db),
-    current_user = Depends(require_roles("student", "admin", "faculty", "super_admin"))
+    current_user: User = Depends(require_roles("student", "admin", "faculty", "super_admin"))
 ):
     usn = usn.upper()
     subject_code = subject_code.upper()
 
-
-    # Logic to ensure student can only see their own summary if they are a student
-    # ROBUST ISOLATION:
+    # Robust Multi-Role Data Isolation Rules
     if current_user.role == "student":
-        # Simply fetch the student record attached to the current user
-        student = db.query(Student).filter(Student.user_id == current_user.id).first()
-        # Verify the USN in the URL matches the USN of the logged-in student
-        if not student or student.usn != usn:
-            raise HTTPException(status_code=403, detail="You can only view your own attendance")
-    if current_user.role == "faculty":
-        # Additional check: Does this faculty teach this subject?
-        faculty = db.query(Faculty).filter(Faculty.user_id == current_user.id).first()
+        student = get_current_student(current_user=current_user, db=db)
+        if student.usn.upper() != usn:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied. Cannot view external student records.")
+            
+    elif current_user.role == "faculty":
+        faculty = get_current_faculty(current_user=current_user, db=db)
         subject = db.query(Subject).filter(Subject.code == subject_code).first()
         if not subject:
-            raise HTTPException(status_code=404, detail="Subject not found")
-        faculty_subject = db.query(FacultySubject).filter(
-            FacultySubject.faculty_id == faculty.id,
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target subject not found")
+            
+        is_assigned = db.query(FacultySubject).filter(
+            FacultySubject.faculty_id == faculty.id, 
             FacultySubject.subject_id == subject.id
         ).first()
-        if not faculty_subject:
-            raise HTTPException(status_code=403, detail="You are not authorized to view this attendance data")
-    
-    if current_user.role == "admin":
-        admin = db.query(Admin).filter(Admin.user_id == current_user.id).first()
-        if not admin:
-            raise HTTPException(status_code=404,detail='admin not assigned as admin properly yet')
-        student_db = db.query(Student).filter(Student.usn == usn).first()
-        if not student_db:
-            raise HTTPException(status_code=404,detail='student not found')
-        if student_db.branch_id != admin.branch_id:
-            raise HTTPException(status_code=403,detail="you're not authorized to access this student attendance")
-        
-        subject = db.query(Subject).filter(Subject.code == subject_code).first()
-        if not subject:
-            raise HTTPException(status_code=404, detail="Subject not found")
-        
-        subject_branch_check = db.query(BranchSubject).filter(BranchSubject.subject_id == subject.id,BranchSubject.branch_id == admin.branch_id).first()
+        if not is_assigned:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied. You do not teach this subject course.")
+            
+    elif current_user.role == "admin":
+        admin = get_current_admin(current_user=current_user, db=db)
+        target_student = db.query(Student).filter(Student.usn == usn).first()
+        if not target_student or target_student.branch_id != admin.branch_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied. Student falls outside your branch context domain.")
 
-        if not subject_branch_check:
-            raise HTTPException(status_code=403,detail='you are not authorized to see attendance for this subject')
-    
-    try:
-        return get_student_subject_attendance(db, usn, subject_code)
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return get_student_subject_attendance(db, usn, subject_code)

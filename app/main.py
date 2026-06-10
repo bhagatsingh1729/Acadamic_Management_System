@@ -3,6 +3,7 @@
 # =============================================================
 
 from fastapi import FastAPI
+#from fastapi.middleware.cors import CORSMiddleware
 
 # ── Database ──────────────────────────────────────────────────
 from app.database import engine, Base
@@ -48,7 +49,21 @@ app = FastAPI(
 
 # ── Middleware ────────────────────────────────────────────────
 app.add_middleware(TimeMiddleware)
+"""
+will add this later while testing
 
+# 1. Define your exact local frontend URLs
+origins = ["*"]
+
+# 2. Add the middleware with credentials enabled
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,     # <--- Crucial for cookies/Auth headers
+    allow_methods=["*"],        # Allows all HTTP methods (GET, POST, OPTIONS, etc.)
+    allow_headers=["*"],        # Allows all headers (Content-Type, Authorization, etc.)
+)
+"""
 # ── Exception Handlers ───────────────────────────────────────
 register_exception_handlers(app)
 

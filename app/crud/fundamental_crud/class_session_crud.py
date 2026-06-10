@@ -128,6 +128,4 @@ def delete_class_session(db: Session, class_session_id: int):
         raise ValueError("class session not found")
 
     db.delete(session)
-    db.commit()
-
-    return {"message": "class session deleted successfully"}
+    #db.commit()
