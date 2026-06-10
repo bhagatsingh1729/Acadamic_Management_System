@@ -515,6 +515,7 @@ class Exam(TimestampMixin, Base):
     max_marks  = Column(Integer, nullable=False)
     semester   = Column(Integer, nullable=False)
     batch      = Column(String,  nullable=False)   # e.g. "2023-27"
+    section    = Column(String,  nullable=False)
     date       = Column(Date,    nullable=False)
 
     __table_args__ = (

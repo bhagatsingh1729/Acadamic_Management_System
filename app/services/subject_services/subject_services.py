@@ -20,6 +20,8 @@ def create_subject_service(subject_data:SubjectCreateRequest,db:Session):
         new_subject = create_subject(db=db,subject_data=subject_data)
         db.commit()
         db.refresh(new_subject)
+
+        return new_subject
     except HTTPException:
         raise
     except Exception as e:

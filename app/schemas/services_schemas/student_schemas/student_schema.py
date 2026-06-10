@@ -18,8 +18,8 @@
 # =============================================================
 
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field
-
+from pydantic import BaseModel, EmailStr, Field,ConfigDict
+from app.schemas.response_schemas.base_response import UserBasicInfo
 
 class StudentCreateRequest(BaseModel):
     """
@@ -58,3 +58,20 @@ class StudentUpdateRequest(BaseModel):
     phone_no: Optional[str] = None
     dob: Optional[str] = None
     address: Optional[str] = None
+
+# =============================================================
+# STUDENT RESPONSE
+# =============================================================
+class StudentResponse(BaseModel):
+    id: int
+    user_id: int
+    usn: str
+    semester: int
+    batch: str
+    section: str
+    branch_id: int
+    #branch_uid:str # Adding this get branch_uid
+    user: UserBasicInfo
+
+    model_config = ConfigDict(from_attributes=True)
+

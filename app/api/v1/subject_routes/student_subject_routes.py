@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import (
     require_roles,
 )
-
+from app.schemas.services_schemas.subject_schemas.subject_schemas import SubjectResponse
+from app.schemas.response_schemas.person_responses import StudentResponse
 from app.schemas.services_schemas.subject_schemas.student_subject_schemas import (
     EnrollmentRequest,
     EnrollmentResponse,
@@ -54,7 +55,7 @@ def get_all_enrollments_route(db:Session=Depends(get_db),current_user=Depends(re
 
     return get_all_enrollments_service(db=db, enforced_branch_uid=enforced_branch_uid)
 
-@router.get("/student/{usn}",response_model=list[EnrollmentResponse])
+@router.get("/student/{usn}", response_model=list[SubjectResponse])
 def get_enrollments_for_student_route(usn:str,db:Session=Depends(get_db),current_user=Depends(require_roles('admin','super_admin','faculty','hod'))):
     """
     get enrollments of a student based
@@ -70,7 +71,7 @@ def get_enrollments_for_student_route(usn:str,db:Session=Depends(get_db),current
 
     return get_enrollments_for_student_service(db=db, usn=usn, enforced_branch_uid=enforced_branch_uid)
 
-@router.get("/subject/{code}",response_model=list[EnrollmentResponse])
+@router.get("/subject/{code}", response_model=list[StudentResponse])
 def get_students_enrolled_in_subject_route(code:str,db:Session=Depends(get_db),current_user=Depends(require_roles('admin','super_admin','faculty','hod'))):
     """
     get enrollments for a specific subject
