@@ -12,7 +12,7 @@ from app.models.models import (
         Subject
 )
 from app.schemas.fundamental_schemas.marks_schema import MarksCreate
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 
 def create_marks(
     db: Session,
@@ -145,23 +145,25 @@ def create_marks(
 
     return marks
 
-def assign_marks(db: Session, data: MarksCreate, student: Student, exam: Exam):
-    """we would this function at service level instead of create_marks"""
-    # 1. Validate Business Logic (that depends on both objects)
+def assign_marks(db: Session, data: MarksCreate, student: Student, exam: Exam) -> Marks:
+    # 1. Structural Academic Cohort Rule Verification
     if student.semester != exam.semester:
-        raise HTTPException(400, "student semester does not match exam semester")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Student academic semester context mismatch.")
     if student.batch != exam.batch:
-        raise HTTPException(400, "student batch does not match exam batch")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Student academic batch tracking year mismatch.")
+    if student.section != exam.section:
+         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Student core section alignment mismatch.")
     
-    # 2. Score validation
+    # 2. Strict Mathematical Threshold Score Validation
     if not (0 <= data.score <= exam.max_marks):
-        raise HTTPException(400, "Invalid score")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Score parameters fall outside bounds (0 - {exam.max_marks}).")
 
-    # 3. Check for duplicates
-    if db.query(Marks).filter_by(student_id=student.id, exam_id=exam.id).first():
-        raise HTTPException(400, "marks already exist")
+    # 3. Uniqueness Constraints Violations Verification Check
+    existing = db.query(Marks).filter_by(student_id=student.id, exam_id=exam.id).first()
+    if existing:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A marks record assignment entry already exists for this candidate.")
 
-    # 4. Create
+    # 4. Write Entry Assignment Record
     marks = Marks(student_id=student.id, exam_id=exam.id, score=data.score)
     db.add(marks)
     return marks
