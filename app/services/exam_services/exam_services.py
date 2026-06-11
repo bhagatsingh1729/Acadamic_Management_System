@@ -49,7 +49,16 @@ def create_exam_service(data: ExamCreateRequest, db: Session):
         db.commit()
         db.refresh(exam)
         
-        return {"message": "Exam created successfully"}
+        return ExamResponse(
+            id=exam.id,
+            type=exam.type,
+            subject_code=exam.subject.code,
+            max_marks=exam.max_marks,
+            semester=exam.semester,
+            batch=exam.batch,
+            section=exam.section,  
+            date=exam.date
+        )
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to create exam. Error: {str(e)}", exc_info=True)
@@ -81,6 +90,7 @@ def get_all_exams_services(db: Session, student: Optional[Student] = None) -> Li
 
     return [
         ExamResponse(
+            id=exam.id,
             type=exam.type,
             subject_code=exam.subject.code,
             max_marks=exam.max_marks,
@@ -107,7 +117,7 @@ def delete_exam_service(exam_id: int, db: Session):
     try:
         db.delete(exam_db)
         db.commit()
-        return {"message": "Exam deleted successfully"}
+        #return {"message": "Exam deleted successfully"}
     except Exception as e:
         db.rollback()
         logger.error(f"Failed to delete exam ID {exam_id}. Error: {str(e)}", exc_info=True)

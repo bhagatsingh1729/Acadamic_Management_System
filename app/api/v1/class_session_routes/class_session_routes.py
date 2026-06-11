@@ -8,6 +8,8 @@ from app.schemas.services_schemas.class_session_schemas.class_session_schemas im
     ClassSessionCreateRequest,  
     ClassSessionResponse,
 )
+from app.schemas.response_schemas.API_Response import ApiResponse
+
 from app.services.class_session_services.class_session_services import (
     create_class_session_service,
     get_all_class_session_service,
@@ -21,7 +23,7 @@ router = APIRouter(prefix="/class-sessions", tags=["Class Sessions"])
 # =============================================================
 # CREATE SESSION
 # =============================================================
-@router.post("", summary="Create a class session", status_code=status.HTTP_201_CREATED)
+@router.post("", summary="Create a class session", status_code=status.HTTP_201_CREATED,response_model=ApiResponse[ClassSessionResponse])
 def create_class_session(
     data: ClassSessionCreateRequest,
     db: Session = Depends(get_db),
@@ -34,25 +36,27 @@ def create_class_session(
             raise HTTPException(status_code=404, detail="Admin configuration profile missing.")
         enforce_branch_id = admin.branch_id
     
-    return create_class_session_service(db=db, data=data, enforce_branch_id=enforce_branch_id)
+    result = create_class_session_service(db=db, data=data, enforce_branch_id=enforce_branch_id)
+    return ApiResponse(success=True,message='class session created successfully',data=result)
 
 
 # =============================================================
 # STUDENT PROFILE ENDPOINT (Self)
 # =============================================================
-@router.get("/students/me", response_model=List[ClassSessionResponse], summary="Get my academic class timetable")
+@router.get("/students/me", response_model=ApiResponse[List[ClassSessionResponse]], summary="Get my academic class timetable")
 def get_my_classes(
     timeframe: Optional[Literal["today", "recent", "upcoming"]] = None,
     db: Session = Depends(get_db),
     current_user = Depends(require_roles("student"))
 ):
-    return get_student_classes_service(db=db, user_id=current_user.id, timeframe=timeframe)
+    result = get_student_classes_service(db=db, user_id=current_user.id, timeframe=timeframe)
+    return ApiResponse(success=True,message='my classes',data=result)
 
 
 # =============================================================
 # UNIFIED ADMIN SEARCH / LISTING
 # =============================================================
-@router.get("", response_model=List[ClassSessionResponse], summary="Get global class session records")
+@router.get("", response_model=ApiResponse[List[ClassSessionResponse]], summary="Get global class session records")
 def get_all_class_sessions(
     timeframe: Optional[Literal["today", "recent", "upcoming"]] = None,
     db: Session = Depends(get_db),
@@ -65,13 +69,14 @@ def get_all_class_sessions(
             raise HTTPException(status_code=404, detail="Admin profile context missing.")
         enforce_branch_id = admin.branch_id
     
-    return get_all_class_session_service(db=db, enforced_branch_id=enforce_branch_id, timeframe=timeframe)
+    result = get_all_class_session_service(db=db, enforced_branch_id=enforce_branch_id, timeframe=timeframe)
+    return ApiResponse(success=True,message='all classes',data=result)
 
 
 # =============================================================
 # FACULTY PROFILE ENDPOINT (Self)
 # =============================================================
-@router.get("/faculty/me", response_model=List[ClassSessionResponse], summary="Get current logged-in faculty sessions")
+@router.get("/faculty/me", response_model=ApiResponse[List[ClassSessionResponse]], summary="Get current logged-in faculty sessions")
 def get_faculty_classes(
     timeframe: Optional[Literal["today", "recent", "upcoming"]] = None,
     db: Session = Depends(get_db),
@@ -81,13 +86,14 @@ def get_faculty_classes(
     if not faculty:
         raise HTTPException(status_code=404, detail="Faculty employment anchor missing.")
         
-    return get_class_session_of_faculty_service(db=db, employee_id=faculty.employee_id, timeframe=timeframe)
+    result = get_class_session_of_faculty_service(db=db, employee_id=faculty.employee_id, timeframe=timeframe)
+    return ApiResponse(success=True,message='my classes',data=result)
 
 
 # =============================================================
 # ADMINISTRATIVE FACULTY TARGETED SEARCH
 # =============================================================
-@router.get("/faculty/{employee_id}", response_model=List[ClassSessionResponse], summary="Get sessions scoped to a target faculty ID")
+@router.get("/faculty/{employee_id}", response_model=ApiResponse[List[ClassSessionResponse]], summary="Get sessions scoped to a target faculty ID")
 def get_class_sessions_for_faculty(
     employee_id: str,
     timeframe: Optional[Literal["today", "recent", "upcoming"]] = None,
@@ -99,13 +105,14 @@ def get_class_sessions_for_faculty(
         if not faculty or faculty.employee_id != employee_id.upper():
             raise HTTPException(status_code=403, detail="Access Forbidden: Cannot read alternate instructor schedules.") 
             
-    return get_class_session_of_faculty_service(db=db, employee_id=employee_id, timeframe=timeframe)
+    result = get_class_session_of_faculty_service(db=db, employee_id=employee_id, timeframe=timeframe)
+    return ApiResponse(success=True,message='classes of specific faculty',data=result)
 
 
 # =============================================================
 # DELETE ACTION ROUTE
 # =============================================================
-@router.delete("/delete/{class_session_id}", summary="Remove a scheduled class session slot")
+@router.delete("/delete/{class_session_id}", response_model=ApiResponse[None],summary="Remove a scheduled class session slot")
 def delete_class_session_route(
     class_session_id: int,
     db: Session = Depends(get_db),
@@ -118,4 +125,5 @@ def delete_class_session_route(
             raise HTTPException(status_code=404, detail="Admin profile context missing.")
         enforce_branch_id = admin.branch_id
     
-    return delete_class_session_service(db=db, class_session_id=class_session_id, enforce_branch_id=enforce_branch_id)
+    delete_class_session_service(db=db, class_session_id=class_session_id, enforce_branch_id=enforce_branch_id)
+    return ApiResponse(success=True,message='successfully deleted class session',data=None)

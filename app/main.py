@@ -3,6 +3,9 @@
 # =============================================================
 
 from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import HTTPException
 #from fastapi.middleware.cors import CORSMiddleware
 
 # ── Database ──────────────────────────────────────────────────
@@ -48,6 +51,16 @@ app = FastAPI(
 )
 
 # ── Middleware ────────────────────────────────────────────────
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "success": False,
+            "message": exc.detail,
+            "data": None
+        }
+    )
 app.add_middleware(TimeMiddleware)
 """
 will add this later while testing

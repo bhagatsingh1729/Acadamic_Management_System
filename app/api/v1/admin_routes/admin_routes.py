@@ -19,13 +19,15 @@
 #   ALSO FIXED — Removed unused imports
 # =============================================================
 
+from typing import List
+
 from fastapi import APIRouter, Depends, Body
 from sqlalchemy.orm import Session
 from pydantic import EmailStr
 
 from app.database import get_db
 from app.core.dependencies import require_super_admin
-
+from app.schemas.response_schemas.API_Response import ApiResponse
 
 from app.schemas.services_schemas.role_management_schemas.admin_schemas import (
     AdminCreate,
@@ -47,36 +49,40 @@ router = APIRouter(prefix="/admins", tags=["Admin Management"])
 # ADMIN
 # =============================================================
 
-@router.post("/create", response_model=AdminResponse)
+@router.post("/create", response_model=ApiResponse[AdminResponse])
 def create_admin_route(
     data: AdminCreate,
     db: Session = Depends(get_db),
     current_user=Depends(require_super_admin)
 ):
-    return create_admin_service(data=data, db=db)
+    result = create_admin_service(data=data, db=db)
+    return ApiResponse(success=True, message="Admin created successfully.", data=result)
 
 
-@router.get("", response_model=list[AdminResponse])
+@router.get("", response_model=ApiResponse[List[AdminResponse]])
 def get_all_admin_route(
     db: Session = Depends(get_db),
     current_user=Depends(require_super_admin)
 ):
-    return get_all_admin_service(db)
+    result = get_all_admin_service(db)
+    return ApiResponse(success=True, message="Admins fetched successfully.", data=result)
 
 
-@router.patch("/update/{email}", response_model=AdminResponse)
+@router.patch("/update/{email}", response_model=ApiResponse[AdminResponse])
 def update_admin_route(
     email: str,
     data: AdminUpdate,
     db: Session = Depends(get_db),
     current_user=Depends(require_super_admin)
 ):
-    return update_admin_service(email=email, data=data, db=db)
+    result = update_admin_service(email=email, data=data, db=db)
+    return ApiResponse(success=True, message="Admin updated successfully.", data=result)
 
-@router.delete("/delete/{email}")
+@router.delete("/delete/{email}", response_model=ApiResponse[None])
 def delete_admin_route(
     email: EmailStr,
     db: Session = Depends(get_db),
     current_user=Depends(require_super_admin)
 ):
-    return delete_admin_service(email=email, db=db)
+    delete_admin_service(email=email, db=db)
+    return ApiResponse(success=True, message="Admin deleted successfully.", data=None)

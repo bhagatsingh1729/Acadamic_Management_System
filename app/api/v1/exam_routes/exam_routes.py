@@ -9,6 +9,8 @@ from app.schemas.services_schemas.exam_schemas.exam_schemas import (
     ExamCreateRequest,
     ExamResponse,
 )
+from app.schemas.response_schemas.API_Response import ApiResponse
+
 from app.services.exam_services.exam_services import (
     create_exam_service,
     get_all_exams_services,
@@ -20,18 +22,19 @@ router = APIRouter(prefix="/exams", tags=["Exam Management"])
 # =============================================================
 # CREATE EXAM
 # =============================================================
-@router.post("/create", status_code=status.HTTP_201_CREATED)
+@router.post("/create", status_code=status.HTTP_201_CREATED,response_model=ApiResponse[ExamResponse])
 def create_exam_route(data: ExamCreateRequest, db: Session = Depends(get_db), current_user = Depends(require_super_admin)):
     """
     Only super admin can create exams.
     """
-    return create_exam_service(db=db, data=data)
+    result = create_exam_service(db=db, data=data)
+    return ApiResponse(success=True,message='Exam created successfully',data=result)
 
 
 # =============================================================
 # GET ALL EXAMS (Unified Endpoint)
 # =============================================================
-@router.get("", response_model=list[ExamResponse])
+@router.get("", response_model=ApiResponse[list[ExamResponse]])
 def get_all_exams_route(
     db: Session = Depends(get_db),
     current_user = Depends(require_roles('admin', 'faculty', 'student', 'super_admin'))
@@ -53,13 +56,14 @@ def get_all_exams_route(
                 detail="Student academic profile configuration not found."
             )
 
-    return get_all_exams_services(db=db, student=student)
+    result = get_all_exams_services(db=db, student=student)
+    return ApiResponse(success=True,message='all exams',data=result)
 
 
 # =============================================================
 # DELETE EXAM
 # =============================================================
-@router.delete("/{exam_id}")
+@router.delete("/{exam_id}",response_model=ApiResponse[None])
 def delete_exam_route(
     exam_id: int,
     db: Session = Depends(get_db),
@@ -68,4 +72,5 @@ def delete_exam_route(
     """
     Only super admin can delete exams.
     """
-    return delete_exam_service(db=db, exam_id=exam_id)
+    delete_exam_service(db=db, exam_id=exam_id)
+    return ApiResponse(success=True,message='exam deleted successfully',data=None)

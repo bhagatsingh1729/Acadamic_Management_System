@@ -28,6 +28,7 @@
 from typing import Optional
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from fastapi import HTTPException, status
 
 from app.crud.fundamental_crud.student_crud import (
     create_student,
@@ -43,43 +44,38 @@ from app.crud.fundamental_crud.branch_crud import get_branch_by_uid
 from app.schemas.fundamental_schemas.student_schema import StudentCreate, StudentUpdate
 from app.schemas.services_schemas.role_management_schemas.student_schemas import (
     StudentCreateRequest,
-    StudentUpdateRequest
+    StudentUpdateRequest,
+    BulkStudentCreateRequest,
+    BulkStudentCreateResponse,
+    StudentCreateResultItem,
 )
 from app.models.models import Branch
 
 
 # =============================================================
-# CREATE STUDENT
+# SINGLE STUDENT CREATION SERVICE
 # =============================================================
 def create_student_service(
     db: Session,
     data: StudentCreateRequest,
     enforced_branch_id: Optional[int] = None
-    # ↑ Passed from route:
-    #   admin role  → admin.branch_id   (branch-scoped)
-    #   super_admin → None              (unrestricted)
 ):
-    # ─── Step 1: Resolve branch_uid → branch object ──────────
+    # Step 1: Resolve branch_uid → branch object
     branch = get_branch_by_uid(db, data.branch_uid)
-
     if not branch:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Branch '{data.branch_uid}' not found"
         )
 
-    # ─── Step 2: Ownership check (RBAC Layer 3) ───────────────
-    # If enforced_branch_id is set, this is an admin request.
-    # Admin can ONLY create students for their own branch.
-    # If they try to create for another branch → 403.
-    if enforced_branch_id is not None:
-        if branch.id != enforced_branch_id:
-            raise HTTPException(
-                status_code=403,
-                detail="You can only create students for your own branch"
-            )
+    # Step 2: Admin Scope Check (RBAC)
+    if enforced_branch_id is not None and branch.id != enforced_branch_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only create students for your own branch"
+        )
 
-    # ─── Step 3: Build the CRUD-level schema with resolved ID ─
+    # Step 3: Map to CRUD schema
     student_create_data = StudentCreate(
         name=data.name,
         email=data.email,
@@ -88,14 +84,123 @@ def create_student_service(
         semester=data.semester,
         batch=data.batch,
         section=data.section,
-        branch_id=branch.id,      # ← resolved from branch_uid
+        branch_id=branch.id,
         phone_no=data.phone_no,
         dob=data.dob,
         address=data.address
     )
 
-    # ─── Step 4: Call CRUD ────────────────────────────────────
-    return create_student(db, student_create_data)
+    # Step 4: Execute CRUD within an atomic transaction boundary
+    try:
+        student = create_student(db, student_create_data)
+        db.commit()
+        db.refresh(student)
+        return student
+    except ValueError as ve:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected system error occurred while creating the student."
+        )
+
+
+# =============================================================
+# BULK STUDENT CREATION SERVICE
+# =============================================================
+def bulk_create_student_service(
+    db: Session,
+    data: BulkStudentCreateRequest,
+    enforced_branch_id: Optional[int] = None
+) -> BulkStudentCreateResponse:
+    
+    results = []
+    successful_count = 0
+    failed_count = 0
+
+    for student_req in data.students:
+        normalized_usn = student_req.usn.upper()
+        email = student_req.email
+        
+        # Open a database Savepoint context for row-level isolation
+        savepoint = db.begin_nested()
+        try:
+            # 1. Row-level branch resolution
+            branch = get_branch_by_uid(db, student_req.branch_uid)
+            if not branch:
+                raise ValueError(f"Branch '{student_req.branch_uid}' not found")
+
+            # 2. Row-level admin authorization check
+            if enforced_branch_id is not None and branch.id != enforced_branch_id:
+                raise ValueError("You can only create students for your own branch")
+
+            # 3. Process item via clean CRUD function
+            student_create_data = StudentCreate(
+                name=student_req.name,
+                email=student_req.email,
+                password=student_req.password,
+                usn=student_req.usn,
+                semester=student_req.semester,
+                batch=student_req.batch,
+                section=student_req.section,
+                branch_id=branch.id,
+                phone_no=student_req.phone_no,
+                dob=student_req.dob,
+                address=student_req.address
+            )
+            create_student(db, student_create_data)
+            
+            # Row looks great! Commit this specific row savepoint
+            savepoint.commit()
+            successful_count += 1
+            results.append(StudentCreateResultItem(
+                usn=normalized_usn,
+                email=email,
+                status="Success",
+                detail="Student created successfully"
+            ))
+            
+        except ValueError as ve:
+            # Revert ONLY the current row modifications (User + Student flush states)
+            savepoint.rollback()
+            failed_count += 1
+            results.append(StudentCreateResultItem(
+                usn=normalized_usn,
+                email=email,
+                status="Failed",
+                detail=str(ve)
+            ))
+            
+        except Exception:
+            # Catch unpredictable anomalies safely at row-level
+            savepoint.rollback()
+            failed_count += 1
+            results.append(StudentCreateResultItem(
+                usn=normalized_usn,
+                email=email,
+                status="Failed",
+                detail="Unexpected database execution failure"
+            ))
+
+    # Final transaction commit to send all successful rows to disk
+    try:
+        if successful_count > 0:
+            db.commit()
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="A critical database failure occurred during batch save validation."
+        )
+
+    return BulkStudentCreateResponse(
+        total_processed=len(data.students),
+        successful=successful_count,
+        failed=failed_count,
+        results=results
+    )
 
 
 # =============================================================

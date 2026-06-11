@@ -136,7 +136,7 @@ def bulk_mark_attendance_service(db: Session, request: AttendanceBulkMarkRequest
                 ))
         
         db.commit()
-        return {"message": "Bulk attendance updates written successfully."}
+        #return {"message": "Bulk attendance updates written successfully."}
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
@@ -165,7 +165,7 @@ def generate_attendance_for_session_service(db: Session, class_session_id: int, 
     try:
         generate_attendance_for_session(db, class_session_id)
         db.commit()
-        return {"message": "Attendance sheet initialized for session successfully."}
+        #return {"message": "Attendance sheet initialized for session successfully."}
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

@@ -23,3 +23,18 @@ class MappingResponse(BaseModel):
     subject: SubjectData # Nested subject object
 
     model_config = ConfigDict(from_attributes=True)
+
+"""
+            User.name.label("faculty_name"),
+            Faculty.employee_id.label("employee_id"),    # Added employee_id
+            Department.name.label("dept_name"),          # Added dept_name
+            Subject.name.label("subject_name"),
+            Subject.code.label("subject_code")
+"""
+
+class BranchSubjectFacultyResponse(BaseModel):
+    faculty_name:str
+    employee_id:str
+    dept_name:str
+    subject_name:str
+    subject_code:str

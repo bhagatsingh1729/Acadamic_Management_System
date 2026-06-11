@@ -14,6 +14,7 @@ from app.crud.fundamental_crud.department_crud import (
 )
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 
 # Create
 def create_department_service(data:DepartmentCreate,db:Session):
@@ -48,5 +49,12 @@ def delete_department_service(dept_uid:str,db:Session):
     
     if not dept_db:
         raise HTTPException(status_code=404,detail='Department not found')
-    
-    return delete_department(department_id=dept_db.id,db=db)
+    try:
+        db.delete(dept_db)
+        db.commit()
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(500,detail=f'{str(e)}')
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500,detail=f'{str(e)}')

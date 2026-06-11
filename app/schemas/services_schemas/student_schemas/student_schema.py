@@ -1,23 +1,4 @@
-# =============================================================
-# schemas/services_schemas/student_schema.py
-#
-# Service-level request schemas for student operations.
-# =============================================================
-#
-# WHY SEPARATE FROM fundamental_schemas/student_schema.py?
-#
-# fundamental_schemas/student_schema.py → StudentCreate uses branch_id (int)
-#    This is what CRUD understands — raw DB IDs.
-#
-# services_schemas/student_schema.py → StudentCreateRequest uses branch_uid (str)
-#    This is what the service/route accepts — human-friendly identifiers.
-#    The service resolves branch_uid → branch_id before calling CRUD.
-#
-# The admin doesn't know that CSE branch has id=3 in the database.
-# They know it as branch_uid="CSE" or "CSE_2023".
-# =============================================================
-
-from typing import Optional
+from typing import Optional,List
 from pydantic import BaseModel, EmailStr, Field,ConfigDict
 from app.schemas.response_schemas.base_response import UserBasicInfo
 

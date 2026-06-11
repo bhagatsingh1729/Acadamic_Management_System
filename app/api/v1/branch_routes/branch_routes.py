@@ -1,20 +1,3 @@
-# =============================================================
-# api/v1/super_admin_routes/branch_routes.py
-#
-# FIXES APPLIED:
-#   FIX 1.5 — Duplicate function name 'delete_branch_route'
-#     The GET /{branch_uid} handler was named 'delete_branch_route'
-#     which is the same name as the DELETE handler below it.
-#     Python kept only the last definition — the GET route was dead.
-#     Fixed by renaming the GET handler to 'get_branch_route'.
-#
-#   ALSO FIXED — Added response_model to GET routes
-#     GET /all and GET /{branch_uid} were missing response_model.
-#
-#   ALSO FIXED — Removed unused imports
-#     get_current_admin, get_current_student were imported but never used.
-# =============================================================
-
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -32,50 +15,56 @@ from app.schemas.services_schemas.branch_schemas.branch_schemas import (
     BranchResponse,
     BranchUpdate,
 )
+from app.schemas.response_schemas.API_Response import ApiResponse
 
 router = APIRouter(prefix="/branch", tags=["Branch"])
 
 
-@router.post("/create", response_model=BranchResponse)
+@router.post("/create", response_model=ApiResponse[BranchResponse])
 def create_branch_route(
     data: BranchCreate,
     db: Session = Depends(get_db),
     current_user=Depends(require_super_admin)
 ):
-    return create_branch_service(db=db, data=data)
+    result = create_branch_service(db=db, data=data)
+    return ApiResponse(success=True,message='created branch successfully',data=result)
 
 
-@router.get("/all", response_model=list[BranchResponse])
+@router.get("/all", response_model=ApiResponse[list[BranchResponse]])
 def get_all_branch_route(
     db: Session = Depends(get_db),
     current_user=Depends(require_super_admin)
 ):
-    return get_all_branches_service(db=db)
+    result = get_all_branches_service(db=db)
+    return ApiResponse(success=True,message='all branches list',data=result)
 
 
-@router.get("/{branch_uid}", response_model=BranchResponse)
-def get_branch_route(                           # FIX 1.5: renamed from delete_branch_route
+@router.get("/{branch_uid}", response_model=ApiResponse[BranchResponse])
+def get_branch_route(                           
     branch_uid: str,
     db: Session = Depends(get_db),
     current_user=Depends(require_super_admin)
 ):
-    return get_branch_via_uid_service(branch_uid=branch_uid, db=db)
+    result = get_branch_via_uid_service(branch_uid=branch_uid, db=db)
+    return ApiResponse(success=True,message='branch data',data=result)
 
 
-@router.patch("/update/{branch_uid}", response_model=BranchResponse)
+@router.patch("/update/{branch_uid}", response_model=ApiResponse[BranchResponse])
 def update_branch_route(
     branch_uid: str,
     data: BranchUpdate,
     db: Session = Depends(get_db),
     current_user=Depends(require_super_admin)
 ):
-    return update_branch_service(branch_uid=branch_uid, data=data, db=db)
+    result = update_branch_service(branch_uid=branch_uid, data=data, db=db)
+    return ApiResponse(success=True,message='updated branch successully',data=result)
 
 
-@router.delete("/delete/{branch_uid}")
+@router.delete("/delete/{branch_uid}",response_model=ApiResponse[None])
 def delete_branch_route(                        # this name is now unique
     branch_uid: str,
     db: Session = Depends(get_db),
     current_user=Depends(require_super_admin)
 ):
-    return delete_branch_service(branch_uid=branch_uid, db=db)
+    delete_branch_service(branch_uid=branch_uid, db=db)
+    return ApiResponse(success=True,message='branch deleted successfully',data=None)

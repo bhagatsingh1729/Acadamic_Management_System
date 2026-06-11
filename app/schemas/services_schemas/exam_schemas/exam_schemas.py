@@ -14,6 +14,7 @@ class ExamCreateRequest(BaseModel):
     date: date
 
 class ExamResponse(BaseModel):
+    id:int
     type: str
     subject_code: str
     max_marks: int

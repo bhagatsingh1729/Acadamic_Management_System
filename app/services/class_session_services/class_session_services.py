@@ -3,7 +3,7 @@ from datetime import date
 from typing import List, Optional, Literal
 from fastapi import HTTPException, status
 from sqlalchemy import or_, and_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session,joinedload
 
 from app.schemas.fundamental_schemas.class_session_schema import ClassSessionCreate
 from app.schemas.services_schemas.class_session_schemas.class_session_schemas import (
@@ -42,7 +42,7 @@ def create_class_session_service(db: Session, data: ClassSessionCreateRequest, e
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Start time must precede end time.")
 
     # Single unified lookup block for performance
-    db_faculty = db.query(Faculty).filter(Faculty.employee_id == data.employee_id).first()
+    db_faculty = db.query(Faculty).filter(Faculty.employee_id == data.employee_id).options(joinedload(Faculty.user)).first()
     db_subject = db.query(Subject).filter(Subject.code == data.code).first()
 
     if not db_faculty or not db_subject:
@@ -92,7 +92,30 @@ def create_class_session_service(db: Session, data: ClassSessionCreateRequest, e
         class_session = create_class_session(db=db, session_data=data_payload)
         db.commit()
         db.refresh(class_session)
-        return {"message": "Class session created successfully"}
+        #return {"message": "Class session created successfully"}
+        return ClassSessionResponse(
+            session_id=class_session.id,
+            faculty_name = db_faculty.user.name,
+            employee_id = db_faculty.employee_id,
+            code = db_subject.code,
+            semester = db_subject.semester,
+            date = data.date,
+            start_time = data.start_time,
+            end_time = data.end_time,
+            batch = data.batch,
+            section = data.section
+        )
+    
+    # current — swallows ValueError as 500
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(500, "Failed to persist class session layout.")
+
+    # fix — catch ValueError separately first
+    except ValueError as e:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
     except Exception as e:
         db.rollback()
         logger.error(f"Database error during creation: {str(e)}", exc_info=True)

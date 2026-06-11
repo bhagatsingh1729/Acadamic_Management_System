@@ -14,7 +14,10 @@ from app.schemas.services_schemas.subject_schemas.branch_subject_schemas import 
     BranchSubjectCreateRequest,
     BranchSubjectUpdateRequest,
     MappingResponse,
+    BranchSubjectFacultyResponse,
 )
+from app.schemas.response_schemas.API_Response import ApiResponse
+
 from app.models.models import Admin, Branch, Subject, BranchSubject
 from app.models.models import FacultySubject,Faculty,BranchSubject,User,Subject,Department
 from fastapi import HTTPException,Depends,APIRouter
@@ -25,7 +28,7 @@ router = APIRouter(prefix="/branch-subjects",tags=["Branch-Subject Mapping"])
 # POST /branch-subjects — Assign subject to branch
 # admin (own branch only) | super_admin
 # =============================================================
-@router.post("", response_model=MappingResponse)
+@router.post("", response_model=ApiResponse[MappingResponse])
 def assign_subject(
     data: BranchSubjectCreateRequest,
     db: Session = Depends(get_db),
@@ -39,30 +42,32 @@ def assign_subject(
         ).first()
         enforced_branch_uid = admin.branch.branch_uid  
 
-    return assign_subject_to_branch_service(
+    result = assign_subject_to_branch_service(
         data=data,
         db=db,
         enforced_branch_uid=enforced_branch_uid
     )
+    return ApiResponse(success=True,message='successfully assigned mapped subject to branch',data=result)
 
 
 # =============================================================
 # GET /branch-subjects — List all mappings
 # admin | super_admin | faculty | hod
 # =============================================================
-@router.get("", response_model=list[MappingResponse])
+@router.get("", response_model=ApiResponse[list[MappingResponse]])
 def get_all_branch_subjects(
     db: Session = Depends(get_db),
     current_user=Depends(require_roles("admin", "super_admin", "faculty", "hod"))
 ):
-    return get_all_branch_subjects_service(db=db)
+    result = get_all_branch_subjects_service(db=db)
+    return ApiResponse(success=True,message='list of subjects of all branches',data=result)
 
 
 # =============================================================
 # GET /branch-subjects/branch/{branch_uid} — Subjects of a branch
 # admin (own branch only) | super_admin | faculty | hod
 # =============================================================
-@router.get("/branch/{branch_uid}", response_model=list[MappingResponse])
+@router.get("/branch/{branch_uid}", response_model=ApiResponse[list[MappingResponse]])
 def get_subjects_of_branch(
     branch_uid: str,
     db: Session = Depends(get_db),
@@ -79,9 +84,10 @@ def get_subjects_of_branch(
                 detail="You can only view subjects for your own branch"
             )
 
-    return get_subjects_of_branch_service(branch_uid=branch_uid, db=db)
+    result = get_subjects_of_branch_service(branch_uid=branch_uid, db=db)
+    return ApiResponse(success=True,message='list if subjects of a branch',data=result)
 
-@router.get("/faculties")
+@router.get("/faculties",response_model=ApiResponse[list[BranchSubjectFacultyResponse]])
 def get_branch_subject_faculties_route(
     db: Session = Depends(get_db), 
     current_user = Depends(require_roles('admin'))
@@ -108,13 +114,14 @@ def get_branch_subject_faculties_route(
     if not query:
         raise HTTPException(status_code=404, detail="No faculties found for this branch")
 
-    return [row._asdict() for row in query]
+    result = [row._asdict() for row in query]
+    return ApiResponse(success=True,message='faculties who teach subjects to specific branches',data=result)
 
 # =============================================================
 # DELETE /branch-subjects/branch/{branch_uid}/subject/{code}
 # admin (own branch only) | super_admin
 # =============================================================
-@router.delete("/branch/{branch_uid}/subject/{code}")
+@router.delete("/branch/{branch_uid}/subject/{code}",response_model=ApiResponse[None])
 def delete_branch_subject(
     branch_uid: str,
     code: str,
@@ -129,9 +136,10 @@ def delete_branch_subject(
         ).first()
         enforced_branch_uid = admin.branch.branch_uid
 
-    return delete_branch_subject_service(
+    delete_branch_subject_service(
         branch_uid=branch_uid,
         subject_code=code,
         db=db,
         enforced_branch_uid=enforced_branch_uid
     )
+    return ApiResponse(success=True,message='deleted mapping successfully',data=None)

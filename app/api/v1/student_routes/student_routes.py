@@ -38,7 +38,7 @@
 # =============================================================
 
 from typing import List
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query,HTTPException,status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -50,10 +50,13 @@ from app.core.dependencies import (
 from app.schemas.services_schemas.role_management_schemas.student_schemas import (
     StudentCreateRequest,
     StudentUpdateRequest,
+    BulkStudentCreateRequest,
+    BulkStudentCreateResponse,
 )
 from app.schemas.services_schemas.role_management_schemas.student_schemas import StudentResponse
 from app.services.student_services.student_service import (
     create_student_service,
+    bulk_create_student_service,
     get_all_students_service,
     get_student_by_usn_service,
     get_students_by_cohort_service,
@@ -66,34 +69,90 @@ router = APIRouter(prefix="/students", tags=["Students"])
 
 
 # =============================================================
-# POST /students — Create student
+# ROUTE: CREATE SINGLE STUDENT
 # =============================================================
-@router.post(
-    "",
-    response_model=ApiResponse[StudentResponse],
-    summary="Create a student [admin | super_admin]"
-)
-def create_student(
+@router.post("", response_model=ApiResponse[StudentResponse])
+def create_student_route(
     data: StudentCreateRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(require_roles("admin", "super_admin"))
-    # ↑ Only admin and super_admin can create students.
-    #   require_roles returns the User object.
+    current_user = Depends(require_roles('admin', 'super_admin'))
 ):
-    # ─── Branch-scoping logic ─────────────────────────────────
-    # Admin → can only create for their own branch
-    # Super admin → can create for any branch
+    """
+    Endpoint used by admin and super_admin to create a single student.
+    - super_admin: Can create a student in any branch.
+    - admin: Can ONLY create a student matching their own branch_id.
+    """
     enforced_branch_id = None
+    
+    # Enforce branch restriction for lower-tier admin accounts
     if current_user.role == "admin":
         admin: Admin = db.query(Admin).filter(
             Admin.user_id == current_user.id
         ).first()
-
+        
+        if not admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, 
+                detail="Admin profile configuration missing."
+            )
         enforced_branch_id = admin.branch_id
 
-    # Super admin has no branch restriction
-    result = create_student_service(db, data, enforced_branch_id=enforced_branch_id)
-    return ApiResponse(success=True,message='student created successfully',data=result)
+    # Call the core creation pipeline (handles individual transaction rollback/commit)
+    result = create_student_service(
+        db=db, 
+        data=data, 
+        enforced_branch_id=enforced_branch_id
+    )
+    
+    return ApiResponse(
+        success=True,
+        message='Student profile generated successfully.',
+        data=result
+    )
+
+
+# =============================================================
+# ROUTE: BULK CREATE STUDENTS
+# =============================================================
+@router.post("/bulk", response_model=ApiResponse[BulkStudentCreateResponse])
+def bulk_create_students_route(
+    data: BulkStudentCreateRequest,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_roles('admin', 'super_admin'))
+):
+    """
+    Endpoint used by admin and super_admin to batch-create multiple students.
+    Uses nested savepoints under the hood to ensure bad rows don't abort good ones.
+    - super_admin: Can bulk import students across different branches.
+    - admin: Any row pointing to a branch outside their scope will fail gracefully.
+    """
+    enforced_branch_id = None
+    
+    # Enforce branch restriction for lower-tier admin accounts
+    if current_user.role == "admin":
+        admin: Admin = db.query(Admin).filter(
+            Admin.user_id == current_user.id
+        ).first()
+        
+        if not admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, 
+                detail="Admin profile configuration missing."
+            )
+        enforced_branch_id = admin.branch_id
+
+    # Call the bulk service pipeline (manages savepoint checkpoints for row-isolation)
+    result = bulk_create_student_service(
+        db=db, 
+        data=data, 
+        enforced_branch_id=enforced_branch_id
+    )
+    
+    return ApiResponse(
+        success=True,
+        message=f"Bulk creation completed. Processing metrics -> Success: {result.successful}, Failed: {result.failed}",
+        data=result
+    )
 
 
 # =============================================================

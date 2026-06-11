@@ -80,6 +80,7 @@ def create_exam(db: Session, data: ExamCreate):
     )
 
     db.add(exam)
+    #db.flush()
     # (Leaving commit and refresh commented out as per your layout design)
 
     return exam

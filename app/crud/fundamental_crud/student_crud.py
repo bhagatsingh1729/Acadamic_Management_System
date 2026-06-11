@@ -16,87 +16,45 @@ from app.core.security import hash_password
 
 
 def create_student(db: Session, data: StudentCreate):
-
-    existing_email = (
-        db.query(User)
-        .filter(User.email == data.email)
-        .first()
-    )
-
+    # 1. Validation Checks (Raises ValueError for Service Layer to handle)
+    existing_email = db.query(User).filter(User.email == data.email).first()
     if existing_email:
-        raise HTTPException(
-            status_code=400,
-            detail="email already exists"
-        )
+        raise ValueError("email already exists")
 
-    
-
-    existing_usn = (
-        db.query(Student)
-        .filter(Student.usn == data.usn.upper())
-        .first()
-    )
-
+    existing_usn = db.query(Student).filter(Student.usn == data.usn.upper()).first()
     if existing_usn:
-        raise HTTPException(
-            status_code=400,
-            detail="usn already exists"
-        )
+        raise ValueError("usn already exists")
 
-    #checking if branch exists
     branch_db = db.query(Branch).filter(Branch.id == data.branch_id).first()
     if not branch_db:
-        raise HTTPException(
-            status_code=404,
-            detail="branch not found"
-        )
+        raise ValueError("branch not found")
     
-    try:
+    # 2. Stage User Entity
+    user = User(
+        name=data.name,
+        email=data.email,
+        password=hash_password(data.password),
+        role="student",
+        phone_no=data.phone_no,
+        dob=data.dob,
+        address=data.address
+    )
+    db.add(user)
+    db.flush()  # Generates user.id without committing the transaction
 
-        user = User(
-            name=data.name,
-            email=data.email,
-            password=hash_password(data.password),
+    # 3. Stage Student Entity
+    student = Student(
+        user_id=user.id,
+        usn=data.usn.upper(),
+        semester=data.semester,
+        batch=data.batch,
+        section=data.section.upper(),
+        branch_id=data.branch_id
+    )
+    db.add(student)
+    db.flush()  # Staged safely in the session memory
 
-            role="student",
-
-
-            phone_no=data.phone_no,
-            dob=data.dob,
-            address=data.address
-        )
-
-        db.add(user)
-        db.flush()
-
-        student = Student(
-            user_id=user.id,
-
-            usn=data.usn.upper(),# let usn be uppercase so it would be easy to query and avoid duplicate usn because of case
-
-            semester=data.semester,
-            batch=data.batch,
-            section=data.section.upper(),# Same reason here as well
-
-            branch_id=data.branch_id
-        )
-
-        db.add(student)
-
-        db.commit()
-        db.refresh(student)
-
-        return student
-
-    except Exception as e:
-
-        db.rollback()
-
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
-
+    return student
 
 def get_student_by_id(db: Session, student_id: int):
 

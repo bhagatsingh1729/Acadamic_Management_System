@@ -9,6 +9,9 @@ from app.schemas.fundamental_schemas.student_subject_schema import (
 from app.schemas.services_schemas.subject_schemas.student_subject_schemas import (
     EnrollmentRequest,
     EnrollmentResponse,
+    BulkEnrollmentRequest,
+    BulkEnrollmentResponse,
+    EnrollmentResultItem,
 )
 from app.crud.fundamental_crud.student_subject_crud import (
     enroll_student_to_subject,
@@ -63,6 +66,80 @@ def enroll_student_service(db: Session, data: EnrollmentRequest, enforced_branch
             detail="An unexpected error occurred during enrollment."
         )
     
+# =========================
+# BULK ENROLL STUDENTS
+# =========================
+def bulk_enroll_student_service(
+    db: Session, 
+    data: BulkEnrollmentRequest, 
+    enforced_branch_uid: str = None
+) -> BulkEnrollmentResponse:
+    
+    results = []
+    successful_count = 0
+    failed_count = 0
+
+    for req in data.enrollments:
+        usn = req.usn.upper()
+        code = req.code.upper()
+        
+        try:
+            # 1. Fetch student and subject
+            student = db.query(Student).options(joinedload(Student.branch)).filter(Student.usn == usn).first()
+            subject = db.query(Subject).filter(Subject.code == code).first()
+            
+            if not student or not subject:
+                raise ValueError("Student or Subject not found")
+
+            # 2. Enforce Branch Logic (Check if branch offers this course)
+            mapping = db.query(BranchSubject).filter(
+                BranchSubject.branch_id == student.branch_id,
+                BranchSubject.subject_id == subject.id
+            ).first()
+            
+            if not mapping:
+                raise ValueError("Subject not available for this student's branch")
+
+            # 3. Admin Scope Enforcement 
+            if enforced_branch_uid and student.branch.branch_uid != enforced_branch_uid:
+                raise ValueError("You do not have access to this student's branch")
+
+            # 4. Call existing CRUD function
+            # Since enroll_student_to_subject doesn't commit, it simply stages the add()
+            enroll_student_to_subject(db, student.id, subject.id)
+            
+            # Record success
+            results.append(EnrollmentResultItem(usn=usn, code=code, status="Success", detail="Enrolled successfully"))
+            successful_count += 1
+
+        except ValueError as ve:
+            # Catch custom validation errors (from here or from the CRUD function)
+            results.append(EnrollmentResultItem(usn=usn, code=code, status="Failed", detail=str(ve)))
+            failed_count += 1
+            
+        except Exception as e:
+            # Catch unexpected database errors for this specific record
+            results.append(EnrollmentResultItem(usn=usn, code=code, status="Failed", detail="Unexpected system error"))
+            failed_count += 1
+
+    # 5. Transactional Write for all successful staged additions
+    try:
+        if successful_count > 0:
+            db.commit()
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="A critical database error occurred while committing the bulk enrollments."
+        )
+
+    return BulkEnrollmentResponse(
+        total_processed=len(data.enrollments),
+        successful=successful_count,
+        failed=failed_count,
+        results=results
+    )
+
 # =========================
 # GET ALL ENROLLMENTS
 # =========================

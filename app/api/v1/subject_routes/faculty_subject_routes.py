@@ -22,22 +22,27 @@ from app.core.dependencies import (
 from app.schemas.services_schemas.subject_schemas.subject_schemas import (
     SubjectResponse,
 )
+from app.schemas.response_schemas.API_Response import ApiResponse
 from app.database import get_db
 
 router = APIRouter(prefix="/faculty-subjects",tags=['Faculty_Subject Management'])
 
-@router.post("/assign",response_model=FacultySubjectResponse)
+@router.post("/assign",response_model=ApiResponse[FacultySubjectResponse])
 def assign_faculty_subject_route(data:FacultySubjectRequest,db:Session=Depends(get_db),current_user=Depends(require_super_admin)):
-    return assign_subject_to_faculty_service(db=db,data=data)
+    result = assign_subject_to_faculty_service(db=db,data=data)
+    return ApiResponse(success=True,message='successfully assigned subject to faculty',data=result)
 
-@router.get("/subjects/{employee_id}",response_model=list[SubjectResponse])
+@router.get("/subjects/{employee_id}",response_model=ApiResponse[list[SubjectResponse]])
 def get_subjects_of_faculty_route(employee_id:str,db:Session=Depends(get_db),current_user=Depends(require_super_admin)):
-    return get_subjects_of_faculty_service(db=db,employee_id=employee_id)
+    result = get_subjects_of_faculty_service(db=db,employee_id=employee_id)
+    return ApiResponse(success=True,message='subjects list of faculty',data=result)
 
-@router.get("/faculties/{subject_code}",response_model=list[FacultyResponse])
+@router.get("/faculties/{subject_code}",response_model=ApiResponse[list[FacultyResponse]])
 def get_faculties_of_subject_route(subject_code:str,db:Session=Depends(get_db),current_user=Depends(require_super_admin)):
-    return get_faculties_of_subject_service(db=db,subject_code=subject_code)
+    result = get_faculties_of_subject_service(db=db,subject_code=subject_code)
+    return ApiResponse(success=True,message='list of faculties who teach this subject',data=result)
 
-@router.delete("/delete/{employee_id}/subject/{subject_code}")
+@router.delete("/delete/{employee_id}/subject/{subject_code}",response_model=ApiResponse[None])
 def delete_faculty_subject_route(employee_id:str,subject_code:str,db:Session=Depends(get_db),current_user=Depends(require_super_admin)):
-    return delete_faculty_subject_service(db=db,employee_id=employee_id,subject_code=subject_code)
+    delete_faculty_subject_service(db=db,employee_id=employee_id,subject_code=subject_code)
+    return ApiResponse(success=True,message='mapping deleted successfully',data=None)

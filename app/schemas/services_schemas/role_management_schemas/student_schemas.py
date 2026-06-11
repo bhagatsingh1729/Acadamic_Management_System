@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, field_validator, ConfigDict, Field
-from typing import Optional
+from typing import Optional,List
 from app.schemas.response_schemas.base_response import UserBasicInfo
 
 # =============================================================
@@ -47,3 +47,19 @@ class StudentResponse(BaseModel):
     user: UserBasicInfo
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class BulkStudentCreateRequest(BaseModel):
+    students: List[StudentCreateRequest]
+
+class StudentCreateResultItem(BaseModel):
+    usn: str
+    email: str
+    status: str  # "Success" or "Failed"
+    detail: Optional[str] = None
+
+class BulkStudentCreateResponse(BaseModel):
+    total_processed: int
+    successful: int
+    failed: int
+    results: List[StudentCreateResultItem]
