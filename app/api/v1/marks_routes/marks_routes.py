@@ -10,7 +10,7 @@ from app.core.dependencies import (
     get_current_admin
 )
 from app.models.models import User, Marks, Faculty, Student, Admin
-from app.schemas.response_schemas.message_response import ApiResponse
+from app.schemas.response_schemas.API_Response import ApiResponse
 from app.schemas.services_schemas.marks_schemas.marks_schemas import (
     AssignMarksRequest,
     AssignMarksResponse,

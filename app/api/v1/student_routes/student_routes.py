@@ -37,12 +37,12 @@
 #
 # =============================================================
 
-from typing import Optional
+from typing import List
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.models import Admin, Student ,HOD
+from app.models.models import Admin, Student
 from app.core.dependencies import (
     require_roles,
     get_current_student,
@@ -60,7 +60,7 @@ from app.services.student_services.student_service import (
     update_student_service,
     delete_student_service,
 )
-
+from app.schemas.response_schemas.API_Response import ApiResponse
 
 router = APIRouter(prefix="/students", tags=["Students"])
 
@@ -70,7 +70,7 @@ router = APIRouter(prefix="/students", tags=["Students"])
 # =============================================================
 @router.post(
     "",
-    response_model=StudentResponse,
+    response_model=ApiResponse[StudentResponse],
     summary="Create a student [admin | super_admin]"
 )
 def create_student(
@@ -83,19 +83,17 @@ def create_student(
     # ─── Branch-scoping logic ─────────────────────────────────
     # Admin → can only create for their own branch
     # Super admin → can create for any branch
+    enforced_branch_id = None
     if current_user.role == "admin":
         admin: Admin = db.query(Admin).filter(
             Admin.user_id == current_user.id
         ).first()
 
-        return create_student_service(
-            db,
-            data,
-            enforced_branch_id=admin.branch_id   # ← scoped to admin's branch
-        )
+        enforced_branch_id = admin.branch_id
 
     # Super admin has no branch restriction
-    return create_student_service(db, data, enforced_branch_id=None)
+    result = create_student_service(db, data, enforced_branch_id=enforced_branch_id)
+    return ApiResponse(success=True,message='student created successfully',data=result)
 
 
 # =============================================================
@@ -105,7 +103,7 @@ def create_student(
 # =============================================================
 @router.get(
     "/me",
-    response_model=StudentResponse,
+    response_model=ApiResponse[StudentResponse],
     summary="Get own profile [student only]"
 )
 def get_my_profile(
@@ -117,7 +115,8 @@ def get_my_profile(
     #   The student can ONLY get their own record this way.
     #   There's no way for them to access another student's profile.
 ):
-    return student
+    result = student
+    return ApiResponse(success=True,message='your student profile',data=result)
 
 
 # =============================================================
@@ -125,25 +124,27 @@ def get_my_profile(
 # =============================================================
 @router.get(
     "",
-    response_model=list[StudentResponse],
+    response_model=ApiResponse[list[StudentResponse]],
     summary="List students [admin (own branch) | super_admin | faculty | hod]"
 )
 def list_students(
     db: Session = Depends(get_db),
     current_user=Depends(require_roles("admin", "super_admin", "faculty", "hod"))
 ):
+    enforced_branch_id = None
     # Admin → only their branch students
     if current_user.role == "admin":
         admin: Admin = db.query(Admin).filter(
             Admin.user_id == current_user.id
         ).first()
-        return get_all_students_service(db, enforced_branch_id=admin.branch_id)
+        enforced_branch_id = admin.branch_id
 
     
 
 
     # super_admin, faculty, hod → all students
-    return get_all_students_service(db, enforced_branch_id=None)
+    result = get_all_students_service(db, enforced_branch_id=enforced_branch_id)
+    return ApiResponse(success=True,message='list of students',data=result)
 
 
 # =============================================================
@@ -151,7 +152,7 @@ def list_students(
 # =============================================================
 @router.get(
     "/cohort",
-    response_model=list[StudentResponse],
+    response_model=ApiResponse[List[StudentResponse]],
     summary="Get students by cohort [admin | super_admin]"
 )
 def get_cohort(
@@ -161,21 +162,14 @@ def get_cohort(
     db: Session = Depends(get_db),
     current_user=Depends(require_roles("admin", "super_admin"))
 ):
+    branch_id = None
     if current_user.role == "admin":
         admin: Admin = db.query(Admin).filter(
             Admin.user_id == current_user.id
         ).first()
         branch_id = admin.branch_id
-    else:
-        # super_admin must pass branch_id as query param
-        # (handled differently — for now raise error)
-        from fastapi import HTTPException
-        raise HTTPException(
-            status_code=400,
-            detail="Super admin must use /students endpoint with branch filtering"
-        )
 
-    return get_students_by_cohort_service(
+    result = get_students_by_cohort_service(
         db,
         semester=semester,
         batch=batch,
@@ -183,23 +177,28 @@ def get_cohort(
         enforced_branch_id=branch_id
     )
 
+    return ApiResponse(success=True, message="Cohort fetched successfully.", data=result)
+
 # =============================================================
 # GET /students/{usn}
 # ⚠️ All static paths (/me, /cohort) must be above this.
 # =============================================================
-@router.get("/{usn}", response_model=StudentResponse, summary="Get student by USN [admin | super_admin | faculty | hod]")
+@router.get("/{usn}", response_model=ApiResponse[StudentResponse], summary="Get student by USN [admin | super_admin | faculty | hod]")
 def get_student(
     usn: str,
     db: Session = Depends(get_db),
     current_user=Depends(require_roles("admin", "super_admin", "faculty", "hod"))
 ):
+    enforced_branch_id = None
     if current_user.role == "admin":
         admin: Admin = db.query(Admin).filter(
             Admin.user_id == current_user.id
         ).first()
-        return get_student_by_usn_service(db, usn, enforced_branch_id=admin.branch_id)
+        enforced_branch_id = admin.branch_id
 
-    return get_student_by_usn_service(db, usn, enforced_branch_id=None)
+    result = get_student_by_usn_service(db, usn, enforced_branch_id=enforced_branch_id)
+
+    return ApiResponse(success=True,message='student data filtered by usn',data=result)
 
 
 # =============================================================
@@ -207,36 +206,41 @@ def get_student(
 # ⚠️ Removed /update/ prefix — it would collide with GET /{usn}
 #    treating "update" as a USN string.
 # =============================================================
-@router.patch("/{usn}", response_model=StudentResponse, summary="Update student [admin | super_admin]")
+@router.patch("/{usn}", response_model=ApiResponse[StudentResponse], summary="Update student [admin | super_admin]")
 def update_student(
     usn: str,
     data: StudentUpdateRequest,
     db: Session = Depends(get_db),
     current_user=Depends(require_roles("admin", "super_admin"))
 ):
+    enforced_branch_id = None
     if current_user.role == "admin":
         admin: Admin = db.query(Admin).filter(
             Admin.user_id == current_user.id
         ).first()
-        return update_student_service(db, usn, data, enforced_branch_id=admin.branch_id)
+        enforced_branch_id = admin.branch_id
 
-    return update_student_service(db, usn, data, enforced_branch_id=None)
+    result = update_student_service(db, usn, data, enforced_branch_id=enforced_branch_id)
+    return ApiResponse(success=True,message='student updated',data=result)
 
 
 # =============================================================
 # DELETE /students/{usn}
 # ⚠️ Same — removed /delete/ prefix for the same reason.
 # =============================================================
-@router.delete("/{usn}", summary="Delete student [admin | super_admin]")
+@router.delete("/{usn}",response_model=ApiResponse[None], summary="Delete student [admin | super_admin]")
 def delete_student(
     usn: str,
     db: Session = Depends(get_db),
     current_user=Depends(require_roles("admin", "super_admin"))
 ):
+    enforced_branch_id = None
     if current_user.role == "admin":
         admin: Admin = db.query(Admin).filter(
             Admin.user_id == current_user.id
         ).first()
-        return delete_student_service(db, usn, enforced_branch_id=admin.branch_id)
+        enforced_branch_id = admin.branch_id
 
-    return delete_student_service(db, usn, enforced_branch_id=None)
+    delete_student_service(db, usn, enforced_branch_id=enforced_branch_id)
+
+    return ApiResponse(success=True,message='student deleted successfully',data=None)
